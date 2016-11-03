@@ -30,7 +30,8 @@ foydle_lm <- function(xmat, ymat, zmat) {
         x <- xmat[, xname]
         y <- ymat[, yname]
         z <- zmat[, zname]
-        tvalue <- stats::coef(summary(stats::lm(x ~ y * z)))["y:z", "t value"]
+        model <- stats::lm(x ~ y * z)
+        tvalue <- stats::coef(summary(model))["y:z", "t value"]
         t2r(tvalue, df = nrow(xmat) - 4L)
     }
     result <- expand.grid(
