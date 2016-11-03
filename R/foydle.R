@@ -20,19 +20,9 @@
 #'
 #' @export
 foydle <- function(xmat, ymat, zmat, output_file) {
-    .Call("compute_and_save_rvalues",
-        xmat = as.double(xmat),
-        ymat = as.double(ymat),
-        zmat = as.double(zmat),
-        xcol = ncol(xmat),
-        ycol = ncol(ymat),
-        zcol = ncol(zmat),
-        xnames = colnames(xmat),
-        ynames = colnames(ymat),
-        znames = colnames(zmat),
-        n = nrow(xmat),
-        output_file = output_file,
-        PACKAGE = "foydle")
+    storage.mode(xmat) <- storage.mode(ymat) <- storage.mode(zmat) <- "double"
+    .Call("compute_and_save_rvalues", xmat, ymat, zmat,
+        nrow(xmat), output_file, PACKAGE = "foydle")
 }
 
 foydle_lm <- function(xmat, ymat, zmat) {
