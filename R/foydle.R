@@ -23,16 +23,16 @@ foydle <- function(xmat, ymat, zmat) {
         y = colnames(ymat),
         z = colnames(zmat),
         stringsAsFactors = FALSE)
-    result$r <- .Fortran("RVAL",
-        X = as.double(xmat),
-        Y = as.double(ymat),
-        Z = as.double(zmat),
-        XCOL = ncol(xmat),
-        YCOL = ncol(ymat),
-        ZCOL = ncol(zmat),
-        N = nrow(xmat),
-        R = double(ncol(xmat) * ncol(ymat) * ncol(zmat)),
-        PACKAGE = "foydle")$R
+    result$r <- .Call("compute_rvalue",
+        xmat = as.double(xmat),
+        ymat = as.double(ymat),
+        zmat = as.double(zmat),
+        xcol = ncol(xmat),
+        ycol = ncol(ymat),
+        zcol = ncol(zmat),
+        n = nrow(xmat),
+        rvalue = double(ncol(xmat) * ncol(ymat) * ncol(zmat)),
+        PACKAGE = "foydle")
     result
 }
 

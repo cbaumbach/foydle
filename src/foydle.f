@@ -1,42 +1,39 @@
 C     ==================================================================
 
-      SUBROUTINE RVAL(XMAT, YMAT, ZMAT, XCOL, YCOL, ZCOL, N, R)
+      SUBROUTINE RVAL(XMAT, YMAT, ZC, XCOL, YCOL, N, R)
 
-      INTEGER XCOL, YCOL, ZCOL, N, IDX
-      DOUBLE PRECISION XMAT(XCOL * N), YMAT(YCOL * N), ZMAT(ZCOL * N)
-      DOUBLE PRECISION R(XCOL * YCOL * ZCOL)
+      INTEGER XCOL, YCOL, N
+      DOUBLE PRECISION XMAT(XCOL * N), YMAT(YCOL * N), ZC(N)
+      DOUBLE PRECISION R(XCOL * YCOL)
       DOUBLE PRECISION X(N), Y(N), Z(N), YZ(N), PROD
 
-      DO 30, K = 1, ZCOL
-         DO 20, J = 1, YCOL
-            DO 10, I = 1, XCOL
+      DO 20, J = 1, YCOL
+         DO 10, I = 1, XCOL
 
-               CALL COPYCOL(XMAT, I, N, X)
-               CALL COPYCOL(YMAT, J, N, Y)
-               CALL COPYCOL(ZMAT, K, N, Z)
+            CALL COPYCOL(XMAT, I, N, X)
+            CALL COPYCOL(YMAT, J, N, Y)
+            CALL COPYCOL(ZC, 1, N, Z)
 
-               CALL MULT(Y, Z, YZ, N)
+            CALL MULT(Y, Z, YZ, N)
 
-               CALL CENTER(X, N)
-               CALL CENTER(Y, N)
-               CALL CENTER(Z, N)
-               CALL CENTER(YZ, N)
+            CALL CENTER(X, N)
+            CALL CENTER(Y, N)
+            CALL CENTER(Z, N)
+            CALL CENTER(YZ, N)
 
-               CALL ORTHO(Z, Y, N)
-               CALL ORTHO(YZ, Y, N)
-               CALL ORTHO(YZ, Z, N)
-               CALL ORTHO(X, Y, N)
-               CALL ORTHO(X, Z, N)
+            CALL ORTHO(Z, Y, N)
+            CALL ORTHO(YZ, Y, N)
+            CALL ORTHO(YZ, Z, N)
+            CALL ORTHO(X, Y, N)
+            CALL ORTHO(X, Z, N)
 
-               CALL NORM(YZ, N)
-               CALL NORM(X, N)
+            CALL NORM(YZ, N)
+            CALL NORM(X, N)
 
-               IDX = (K - 1) * (XCOL * YCOL) + (J - 1) * XCOL + I
-               R(IDX) = PROD(X, YZ, N)
+            R((J - 1) * XCOL + I) = PROD(X, YZ, N)
 
- 10         CONTINUE
- 20      CONTINUE
- 30   CONTINUE
+ 10      CONTINUE
+ 20   CONTINUE
 
       RETURN
       END
