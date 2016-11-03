@@ -9,31 +9,30 @@
 #' \code{ymat}, and \code{zmat}, respectively.
 #'
 #' @param xmat,ymat,zmat Numeric matrices
+#' @param output_file Path to output file
 #'
-#' @return A data frame with columns "x", "y", "z", and "r".  Columns
-#'     "x", "y", and "z" contain the names of the columns of
-#'     \code{xmat}, \code{ymat}, and \code{zmat} that were used in
-#'     computing the corresponding Pearson correlation coefficient in
-#'     the "r" column.
+#' @return None.  Instead a data frame with columns "x", "y", "z", and
+#'     "r" is written to \code{output_file}.  Columns "x", "y", and
+#'     "z" contain the names of the columns of \code{xmat},
+#'     \code{ymat}, and \code{zmat} that were used in computing the
+#'     corresponding Pearson correlation coefficient in the "r"
+#'     column.
 #'
 #' @export
-foydle <- function(xmat, ymat, zmat) {
-    result <- expand.grid(
-        x = colnames(xmat),
-        y = colnames(ymat),
-        z = colnames(zmat),
-        stringsAsFactors = FALSE)
-    result$r <- .Call("compute_rvalue",
+foydle <- function(xmat, ymat, zmat, output_file) {
+    .Call("compute_and_save_rvalues",
         xmat = as.double(xmat),
         ymat = as.double(ymat),
         zmat = as.double(zmat),
         xcol = ncol(xmat),
         ycol = ncol(ymat),
         zcol = ncol(zmat),
+        xnames = colnames(xmat),
+        ynames = colnames(ymat),
+        znames = colnames(zmat),
         n = nrow(xmat),
-        rvalue = double(ncol(xmat) * ncol(ymat) * ncol(zmat)),
+        output_file = output_file,
         PACKAGE = "foydle")
-    result
 }
 
 foydle_lm <- function(xmat, ymat, zmat) {
@@ -48,6 +47,7 @@ foydle_lm <- function(xmat, ymat, zmat) {
         x = colnames(xmat),
         y = colnames(ymat),
         z = colnames(zmat),
+        KEEP.OUT.ATTRS = FALSE,
         stringsAsFactors = FALSE)
     result$r <- as.double(Map(find_rvalue, result$x, result$y, result$z))
     result
