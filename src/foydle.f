@@ -1,39 +1,41 @@
 C     ==================================================================
 
-      SUBROUTINE RVAL(XS, YS, ZS, N, R)
+      SUBROUTINE RVAL(XMAT, YMAT, ZMAT, XCOL, YCOL, ZCOL, N, R)
 
-      INTEGER N
-      DOUBLE PRECISION XS(N), YS(N), ZS(N), R
-      DOUBLE PRECISION X(N), Y(N), Z(N), YZ(N)
+      INTEGER XCOL, YCOL, ZCOL, N, IDX
+      DOUBLE PRECISION XMAT(XCOL * N), YMAT(YCOL * N), ZMAT(ZCOL * N)
+      DOUBLE PRECISION R(XCOL * YCOL * ZCOL)
+      DOUBLE PRECISION X(N), Y(N), Z(N), YZ(N), PROD
 
-C     Copy variables.
-      DO 10, I = 1, N
-         X(I) = XS(I)
-         Y(I) = YS(I)
-         Z(I) = ZS(I)
- 10   CONTINUE
+      DO 30, K = 1, ZCOL
+         DO 20, J = 1, YCOL
+            DO 10, I = 1, XCOL
 
-      DO 20, I = 1, N
-         YZ(I) = Y(I) * Z(I)
- 20   CONTINUE
+               CALL COPYCOL(XMAT, I, N, X)
+               CALL COPYCOL(YMAT, J, N, Y)
+               CALL COPYCOL(ZMAT, K, N, Z)
 
-      CALL CENTER(X, N)
-      CALL CENTER(Y, N)
-      CALL CENTER(Z, N)
-      CALL CENTER(YZ, N)
+               CALL MULT(Y, Z, YZ, N)
 
-      CALL ORTHO(Z, Y, N)
-      CALL ORTHO(YZ, Y, N)
-      CALL ORTHO(YZ, Z, N)
-      CALL ORTHO(X, Y, N)
-      CALL ORTHO(X, Z, N)
+               CALL CENTER(X, N)
+               CALL CENTER(Y, N)
+               CALL CENTER(Z, N)
+               CALL CENTER(YZ, N)
 
-      CALL NORM(YZ, N)
-      CALL NORM(X, N)
+               CALL ORTHO(Z, Y, N)
+               CALL ORTHO(YZ, Y, N)
+               CALL ORTHO(YZ, Z, N)
+               CALL ORTHO(X, Y, N)
+               CALL ORTHO(X, Z, N)
 
-      R = 0.0
-      DO 30, I = 1, N
-         R = R + X(I) * YZ(I)
+               CALL NORM(YZ, N)
+               CALL NORM(X, N)
+
+               IDX = (K - 1) * (XCOL * YCOL) + (J - 1) * XCOL + I
+               R(IDX) = PROD(X, YZ, N)
+
+ 10         CONTINUE
+ 20      CONTINUE
  30   CONTINUE
 
       RETURN
@@ -103,4 +105,46 @@ C     Compute sum of squares.
  20   CONTINUE
 
       RETURN
+      END
+
+C     ==================================================================
+
+      SUBROUTINE COPYCOL(MAT, COL, ROWS, X)
+
+      INTEGER COL, ROWS
+      DOUBLE PRECISION MAT(COL * ROWS), X(ROWS)
+
+      DO 10, I = 1, ROWS
+         X(I) = MAT((COL - 1) * ROWS + I)
+ 10   CONTINUE
+
+      RETURN
+      END
+
+C     ==================================================================
+
+      SUBROUTINE MULT(X, Y, Z, N)
+
+      INTEGER N
+      DOUBLE PRECISION X(N), Y(N), Z(N)
+
+      DO 10, I = 1, N
+         Z(I) = X(I) * Y(I)
+ 10   CONTINUE
+
+      RETURN
+      END
+
+C     ==================================================================
+
+      DOUBLE PRECISION FUNCTION PROD(X, Y, N)
+
+      INTEGER N
+      DOUBLE PRECISION X(N), Y(N)
+
+      PROD = 0.0
+      DO 10, I = 1, N
+         PROD = PROD + X(I) * Y(I)
+ 10   CONTINUE
+
       END

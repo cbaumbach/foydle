@@ -18,21 +18,21 @@
 #'
 #' @export
 foydle <- function(xmat, ymat, zmat) {
-    find_rvalue <- function(xname, yname, zname) {
-        .Fortran("RVAL",
-            X = as.double(xmat[, xname]),
-            Y = as.double(ymat[, yname]),
-            Z = as.double(zmat[, zname]),
-            N = nrow(xmat),
-            R = double(1),
-            PACKAGE = "foydle")$R
-    }
     result <- expand.grid(
         x = colnames(xmat),
         y = colnames(ymat),
         z = colnames(zmat),
         stringsAsFactors = FALSE)
-    result$r <- as.double(Map(find_rvalue, result$x, result$y, result$z))
+    result$r <- .Fortran("RVAL",
+        X = as.double(xmat),
+        Y = as.double(ymat),
+        Z = as.double(zmat),
+        XCOL = ncol(xmat),
+        YCOL = ncol(ymat),
+        ZCOL = ncol(zmat),
+        N = nrow(xmat),
+        R = double(ncol(xmat) * ncol(ymat) * ncol(zmat)),
+        PACKAGE = "foydle")$R
     result
 }
 
