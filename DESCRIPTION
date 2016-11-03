@@ -1,0 +1,15 @@
+Package: foydle
+Title: Fast r-values for linear regression interaction term
+Version: 0.0.0.9000
+Authors@R: person("Clemens", "Baumbach",
+    email = "clemens.baumbach@gmx.net", role = c("aut", "cre"))
+Description: This package computes r-values for the interaction term
+    in the linear regression x ~ y * z.
+Depends:
+    R (>= 3.3.1)
+License: GPL (>= 2)
+Encoding: UTF-8
+LazyData: true
+Suggests:
+    testthat
+RoxygenNote: 5.0.1
