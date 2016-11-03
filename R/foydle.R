@@ -1,17 +1,15 @@
-#' Fast Pearson correlation for linear regression interaction term
+#' Fast Pearson Correlation For Linear Regression Interaction Term
 #'
 #' \code{foydle} computes Pearson correlation coefficients for the
 #' interaction term in the linear regression
-#'
-#'     \deqn{x = 1 + y + z + y*z}
-#'
+#'     \deqn{x = \beta_0 + \beta_1 y + \beta_2 z + \beta_3 y*z}{x = b0 + b1 y + b2 z + b3 y*z}
 #' where \eqn{x}, \eqn{y}, and \eqn{z} are columns from \code{xmat},
 #' \code{ymat}, and \code{zmat}, respectively.
 #'
 #' @param xmat,ymat,zmat Numeric matrices
 #' @param output_file Path to output file
 #'
-#' @return Return \code{output_file} where a data frame with columns
+#' @return Returns \code{output_file} where a data frame with columns
 #'     "x", "y", "z", and "r" was written.  Columns "x", "y", and "z"
 #'     contain the names of the columns of \code{xmat}, \code{ymat},
 #'     and \code{zmat} that were used in computing the corresponding

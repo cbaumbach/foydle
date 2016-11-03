@@ -2,7 +2,7 @@
 % Please edit documentation in R/foydle.R
 \name{foydle}
 \alias{foydle}
-\title{Fast Pearson correlation for linear regression interaction term}
+\title{Fast Pearson Correlation For Linear Regression Interaction Term}
 \usage{
 foydle(xmat, ymat, zmat, output_file)
 }
@@ -12,7 +12,7 @@ foydle(xmat, ymat, zmat, output_file)
 \item{output_file}{Path to output file}
 }
 \value{
-Return \code{output_file} where a data frame with columns
+Returns \code{output_file} where a data frame with columns
     "x", "y", "z", and "r" was written.  Columns "x", "y", and "z"
     contain the names of the columns of \code{xmat}, \code{ymat},
     and \code{zmat} that were used in computing the corresponding
@@ -21,10 +21,7 @@ Return \code{output_file} where a data frame with columns
 \description{
 \code{foydle} computes Pearson correlation coefficients for the
 interaction term in the linear regression
-}
-\details{
-\deqn{x = 1 + y + z + y*z}
-
+    \deqn{x = \beta_0 + \beta_1 y + \beta_2 z + \beta_3 y*z}{x = b0 + b1 y + b2 z + b3 y*z}
 where \eqn{x}, \eqn{y}, and \eqn{z} are columns from \code{xmat},
 \code{ymat}, and \code{zmat}, respectively.
 }
