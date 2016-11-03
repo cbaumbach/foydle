@@ -11,18 +11,18 @@
 #' @param xmat,ymat,zmat Numeric matrices
 #' @param output_file Path to output file
 #'
-#' @return None.  Instead a data frame with columns "x", "y", "z", and
-#'     "r" is written to \code{output_file}.  Columns "x", "y", and
-#'     "z" contain the names of the columns of \code{xmat},
-#'     \code{ymat}, and \code{zmat} that were used in computing the
-#'     corresponding Pearson correlation coefficient in the "r"
-#'     column.
+#' @return Return \code{output_file} where a data frame with columns
+#'     "x", "y", "z", and "r" was written.  Columns "x", "y", and "z"
+#'     contain the names of the columns of \code{xmat}, \code{ymat},
+#'     and \code{zmat} that were used in computing the corresponding
+#'     Pearson correlation coefficient in the "r" column.
 #'
 #' @export
 foydle <- function(xmat, ymat, zmat, output_file) {
     storage.mode(xmat) <- storage.mode(ymat) <- storage.mode(zmat) <- "double"
     .Call("compute_and_save_rvalues", xmat, ymat, zmat,
         nrow(xmat), output_file, PACKAGE = "foydle")
+    output_file
 }
 
 foydle_lm <- function(xmat, ymat, zmat) {

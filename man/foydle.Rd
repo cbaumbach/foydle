@@ -12,12 +12,11 @@ foydle(xmat, ymat, zmat, output_file)
 \item{output_file}{Path to output file}
 }
 \value{
-None.  Instead a data frame with columns "x", "y", "z", and
-    "r" is written to \code{output_file}.  Columns "x", "y", and
-    "z" contain the names of the columns of \code{xmat},
-    \code{ymat}, and \code{zmat} that were used in computing the
-    corresponding Pearson correlation coefficient in the "r"
-    column.
+Return \code{output_file} where a data frame with columns
+    "x", "y", "z", and "r" was written.  Columns "x", "y", and "z"
+    contain the names of the columns of \code{xmat}, \code{ymat},
+    and \code{zmat} that were used in computing the corresponding
+    Pearson correlation coefficient in the "r" column.
 }
 \description{
 \code{foydle} computes Pearson correlation coefficients for the
