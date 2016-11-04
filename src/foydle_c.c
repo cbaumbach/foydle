@@ -10,17 +10,24 @@ static void print_rvalues(FILE *fp, double *rvalue, int n, int xcol, int ycol,
     double threshold, const char **xnames, const char **ynames, const char *zname);
 
 void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *, int *);
+void F77_NAME(center)(double *, int *, int *);
 
-SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
+SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
     SEXP n_, SEXP output_file, SEXP colnames, SEXP rvalue_threshold, SEXP cores)
 {
     int n = asInteger(n_);
-    int xcol = length(xmat) / n;
-    int ycol = length(ymat) / n;
-    int zcol = length(zmat) / n;
-    const char **xnames = extract_colnames(xmat);
-    const char **ynames = extract_colnames(ymat);
-    const char **znames = extract_colnames(zmat);
+    int xcol = length(xmat_) / n;
+    int ycol = length(ymat_) / n;
+    int zcol = length(zmat_) / n;
+    const char **xnames = extract_colnames(xmat_);
+    const char **ynames = extract_colnames(ymat_);
+    const char **znames = extract_colnames(zmat_);
+    SEXP xmat = PROTECT(duplicate(xmat_));
+    SEXP ymat = PROTECT(duplicate(ymat_));
+    SEXP zmat = PROTECT(duplicate(zmat_));
+    F77_CALL(center)(REAL(xmat), &n, &xcol);
+    F77_CALL(center)(REAL(ymat), &n, &ycol);
+    F77_CALL(center)(REAL(zmat), &n, &zcol);
     double *rvalue = malloc(xcol * ycol * sizeof(*rvalue));
 
     FILE *fp = fopen(CHAR(asChar(output_file)), "wb");
@@ -33,6 +40,7 @@ SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
     }
     fclose(fp);
 
+    UNPROTECT(3);
     free(rvalue);
     free(xnames);
     free(ynames);

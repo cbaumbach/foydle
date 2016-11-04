@@ -13,9 +13,7 @@ C$OMP PARALLEL DO PRIVATE(X, Y, Z, YY, YZ, ZZ), NUM_THREADS(CORES)
          CALL CPYCOL(YMAT, J, N, Y)
          CALL CPYCOL(ZC, 1, N, Z)
          CALL MULT(Y, Z, YZ, N)
-         CALL CENTER(Y, N)
-         CALL CENTER(Z, N)
-         CALL CENTER(YZ, N)
+         CALL CENTER(YZ, N, 1)
          YY = PROD(Y, Y, N)
          CALL ORTHO(Z, Y, YY, N)
          ZZ = PROD(Z, Z, N)
@@ -24,33 +22,11 @@ C$OMP PARALLEL DO PRIVATE(X, Y, Z, YY, YZ, ZZ), NUM_THREADS(CORES)
          CALL NORM(YZ, N)
          DO 10, I = 1, XCOL
             CALL CPYCOL(XMAT, I, N, X)
-            CALL CENTER(X, N)
             CALL ORTHO(X, Y, YY, N)
             CALL ORTHO(X, Z, ZZ, N)
             CALL NORM(X, N)
             R((J - 1) * XCOL + I) = PROD(X, YZ, N)
  10      CONTINUE
- 20   CONTINUE
-
-      RETURN
-      END
-
-C     ==================================================================
-
-      SUBROUTINE CENTER(X, N)
-
-      INTEGER N
-      DOUBLE PRECISION X(N), MEAN, SUM
-
-      SUM = 0.0
-      DO 10, I = 1, N
-         SUM = SUM + X(I)
- 10   CONTINUE
-
-      MEAN = SUM / N
-
-      DO 20, I = 1, N
-         X(I) = X(I) - MEAN
  20   CONTINUE
 
       RETURN
@@ -136,4 +112,25 @@ C     ==================================================================
          PROD = PROD + X(I) * Y(I)
  10   CONTINUE
 
+      END
+
+C     ==================================================================
+
+      SUBROUTINE CENTER(MAT, NROW, NCOL)
+
+      INTEGER NROW, NCOL
+      DOUBLE PRECISION MAT(NROW * NCOL), SUM, MEAN
+
+      DO 20, I = 1, NCOL
+         SUM = 0.0
+         DO 10, J = (I - 1) * NROW + 1, I * NROW
+            SUM = SUM + MAT(J)
+ 10      CONTINUE
+         MEAN = SUM / DBLE(NROW)
+         DO 11, J = (I - 1) * NROW + 1, I * NROW
+            MAT(J) = MAT(J) - MEAN
+ 11      CONTINUE
+ 20   CONTINUE
+
+      RETURN
       END
