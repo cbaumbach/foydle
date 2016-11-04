@@ -2,13 +2,14 @@
 #include <Rinternals.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 static const char **extract_colnames(SEXP mat);
 
 void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *);
 
 SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
-    SEXP n_, SEXP output_file, SEXP colnames)
+    SEXP n_, SEXP output_file, SEXP colnames, SEXP rvalue_threshold_)
 {
     int n = asInteger(n_);
     int xcol = length(xmat) / n;
@@ -17,6 +18,7 @@ SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
     const char **xnames = extract_colnames(xmat);
     const char **ynames = extract_colnames(ymat);
     const char **znames = extract_colnames(zmat);
+    double rvalue_threshold = asReal(rvalue_threshold_);
 
     FILE *fp = fopen(CHAR(asChar(output_file)), "wb");
     fprintf(fp, "%s\t%s\t%s\tr\n",
@@ -27,9 +29,11 @@ SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
     for (int i = 0; i < zcol; i++) {
         double *z = REAL(zmat) + i * n;
         F77_CALL(rval)(REAL(xmat), REAL(ymat), z, &xcol, &ycol, &n, r);
-        for (int j = 0; j < xcol * ycol; j++)
-            fprintf(fp, "%s\t%s\t%s\t%.9f\n",
-                xnames[j % xcol], ynames[j / xcol], znames[i], r[j]);
+        for (int j = 0; j < xcol * ycol; j++) {
+            if (!R_FINITE(rvalue_threshold) || fabs(r[j]) >= rvalue_threshold)
+                fprintf(fp, "%s\t%s\t%s\t%.9f\n",
+                    xnames[j % xcol], ynames[j / xcol], znames[i], r[j]);
+        }
     }
     free(r);
     fclose(fp);

@@ -4,7 +4,8 @@
 \alias{foydle}
 \title{Fast Pearson Correlation For Linear Regression Interaction Term}
 \usage{
-foydle(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z"))
+foydle(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z"),
+  pvalue_threshold = NULL)
 }
 \arguments{
 \item{xmat, ymat, zmat}{Numeric matrices}
@@ -12,6 +13,9 @@ foydle(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z"))
 \item{output_file}{Path to output file}
 
 \item{colnames}{Names for columns 1-3 in output table}
+
+\item{pvalue_threshold}{Save only results with p-value below
+threshold (default: save all results)}
 }
 \value{
 Returns \code{output_file} where a data frame with columns

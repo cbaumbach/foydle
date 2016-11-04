@@ -9,6 +9,8 @@
 #' @param xmat,ymat,zmat Numeric matrices
 #' @param output_file Path to output file
 #' @param colnames Names for columns 1-3 in output table
+#' @param pvalue_threshold Save only results with p-value below
+#'     threshold (default: save all results)
 #'
 #' @return Returns \code{output_file} where a data frame with columns
 #'     "x", "y", "z", and "r" was written.  Columns "x", "y", and "z"
@@ -19,10 +21,17 @@
 #'     argument.
 #'
 #' @export
-foydle <- function(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z")) {
+foydle <- function(xmat, ymat, zmat, output_file,
+    colnames = c("x", "y", "z"), pvalue_threshold = NULL)
+{
+    if (is.null(pvalue_threshold))
+        rvalue_threshold <- Inf
+    else
+        rvalue_threshold <- p2r(pvalue_threshold, df = nrow(xmat) - 4)
     storage.mode(xmat) <- storage.mode(ymat) <- storage.mode(zmat) <- "double"
     .Call("compute_and_save_rvalues", xmat, ymat, zmat,
-        nrow(xmat), output_file, colnames, PACKAGE = "foydle")
+        nrow(xmat), output_file, colnames, rvalue_threshold,
+        PACKAGE = "foydle")
     output_file
 }
 
@@ -47,6 +56,10 @@ foydle_lm <- function(xmat, ymat, zmat) {
 
 t2r <- function(t, df) {
     t / sqrt(t^2 + df)
+}
+
+p2r <- function(p, df) {
+    t2r(p2t(p, df), df)
 }
 
 p2t <- function(p, df) {
