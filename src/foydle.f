@@ -6,8 +6,9 @@ C     ==================================================================
       DOUBLE PRECISION XMAT(XCOL * N), YMAT(YCOL * N), ZC(N)
       DOUBLE PRECISION R(XCOL * YCOL)
       DOUBLE PRECISION X(N), Y(N), Z(N), YZ(N), PROD
+      DOUBLE PRECISION YY, ZZ
 
-C$OMP PARALLEL DO PRIVATE(X, Y, Z, YZ), NUM_THREADS(CORES)
+C$OMP PARALLEL DO PRIVATE(X, Y, Z, YY, YZ, ZZ), NUM_THREADS(CORES)
       DO 20, J = 1, YCOL
          CALL COPYCOL(YMAT, J, N, Y)
          CALL COPYCOL(ZC, 1, N, Z)
@@ -15,15 +16,17 @@ C$OMP PARALLEL DO PRIVATE(X, Y, Z, YZ), NUM_THREADS(CORES)
          CALL CENTER(Y, N)
          CALL CENTER(Z, N)
          CALL CENTER(YZ, N)
-         CALL ORTHO(Z, Y, N)
-         CALL ORTHO(YZ, Y, N)
-         CALL ORTHO(YZ, Z, N)
+         YY = PROD(Y, Y, N)
+         CALL ORTHO(Z, Y, YY, N)
+         ZZ = PROD(Z, Z, N)
+         CALL ORTHO(YZ, Y, YY, N)
+         CALL ORTHO(YZ, Z, ZZ, N)
          CALL NORM(YZ, N)
          DO 10, I = 1, XCOL
             CALL COPYCOL(XMAT, I, N, X)
             CALL CENTER(X, N)
-            CALL ORTHO(X, Y, N)
-            CALL ORTHO(X, Z, N)
+            CALL ORTHO(X, Y, YY, N)
+            CALL ORTHO(X, Z, ZZ, N)
             CALL NORM(X, N)
             R((J - 1) * XCOL + I) = PROD(X, YZ, N)
  10      CONTINUE
@@ -55,7 +58,7 @@ C     ==================================================================
 
 C     ==================================================================
 
-      SUBROUTINE ORTHO(X, Y, N)
+      SUBROUTINE ORTHO(X, Y, YY, N)
 
       INTEGER N
       DOUBLE PRECISION X(N), Y(N), XY, YY
@@ -65,14 +68,9 @@ C     ==================================================================
          XY = XY + X(I) * Y(I)
  10   CONTINUE
 
-      YY = 0.0
       DO 20, I = 1, N
-         YY = YY + Y(I) * Y(I)
- 20   CONTINUE
-
-      DO 30, I = 1, N
          X(I) = X(I) - XY / YY * Y(I)
- 30   CONTINUE
+ 20   CONTINUE
 
       RETURN
       END
