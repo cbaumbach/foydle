@@ -48,3 +48,8 @@ foydle_lm <- function(xmat, ymat, zmat) {
 t2r <- function(t, df) {
     t / sqrt(t^2 + df)
 }
+
+p2t <- function(p, df) {
+    # Find (1 - p/2)th quantile.
+    qt(log(p) - log(2), df, lower.tail = FALSE, log.p = TRUE)
+}
