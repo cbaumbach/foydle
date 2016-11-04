@@ -5,7 +5,7 @@ create_data <- function(x = 2, y = 3, z = 4) {
 }
 
 create_matrix <- function(colnames, nobs = 20) {
-    matrix(rnorm(nobs * length(colnames)),
+    matrix(stats::rnorm(nobs * length(colnames)),
         ncol = length(colnames),
         dimnames = list(NULL, colnames))
 }

@@ -35,5 +35,5 @@ context("conversions")
 
 test_that("p2t finds the (1 - p/2)th quantile of a t-distribution", {
     p <- .1; df <- 5
-    expect_equal(p2t(p, df), qt(1 - p/2, df))
+    expect_equal(p2t(p, df), stats::qt(1 - p/2, df))
 })

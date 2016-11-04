@@ -64,5 +64,5 @@ p2r <- function(p, df) {
 
 p2t <- function(p, df) {
     # Find (1 - p/2)th quantile.
-    qt(log(p) - log(2), df, lower.tail = FALSE, log.p = TRUE)
+    stats::qt(log(p) - log(2), df, lower.tail = FALSE, log.p = TRUE)
 }
