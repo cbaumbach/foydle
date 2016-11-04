@@ -51,10 +51,15 @@ static void print_header(FILE *fp, SEXP colnames) {
 static void print_rvalues(FILE *fp, double *rvalue, int n, int xcol, int ycol,
     double threshold, const char **xnames, const char **ynames, const char *zname)
 {
-    for (int i = 0; i < n; i++) {
-        if (!R_FINITE(threshold) || fabs(rvalue[i]) >= threshold)
+    if (!R_FINITE(threshold)) {
+        for (int i = 0; i < n; i++)
             fprintf(fp, "%s\t%s\t%s\t%.9f\n",
                 xnames[i % xcol], ynames[i / xcol], zname, rvalue[i]);
+    } else {
+        for (int i = 0; i < n; i++)
+            if (fabs(rvalue[i]) >= threshold)
+                fprintf(fp, "%s\t%s\t%s\t%.9f\n",
+                    xnames[i % xcol], ynames[i / xcol], zname, rvalue[i]);
     }
 }
 
