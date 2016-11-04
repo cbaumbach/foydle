@@ -4,19 +4,23 @@
 \alias{foydle}
 \title{Fast Pearson Correlation For Linear Regression Interaction Term}
 \usage{
-foydle(xmat, ymat, zmat, output_file)
+foydle(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z"))
 }
 \arguments{
 \item{xmat, ymat, zmat}{Numeric matrices}
 
 \item{output_file}{Path to output file}
+
+\item{colnames}{Names for columns 1-3 in output table}
 }
 \value{
 Returns \code{output_file} where a data frame with columns
     "x", "y", "z", and "r" was written.  Columns "x", "y", and "z"
     contain the names of the columns of \code{xmat}, \code{ymat},
     and \code{zmat} that were used in computing the corresponding
-    Pearson correlation coefficient in the "r" column.
+    Pearson correlation coefficient in the "r" column.  Column
+    names other than "r" can be changed via the \code{colnames}
+    argument.
 }
 \description{
 \code{foydle} computes Pearson correlation coefficients for the

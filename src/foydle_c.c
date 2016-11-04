@@ -7,7 +7,8 @@ static const char **extract_colnames(SEXP mat);
 
 void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *);
 
-SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat, SEXP n_, SEXP output_file)
+SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
+    SEXP n_, SEXP output_file, SEXP colnames)
 {
     int n = asInteger(n_);
     int xcol = length(xmat) / n;
@@ -18,7 +19,10 @@ SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat, SEXP n_, SEXP out
     const char **znames = extract_colnames(zmat);
 
     FILE *fp = fopen(CHAR(asChar(output_file)), "wb");
-    fprintf(fp, "x\ty\tz\tr\n");
+    fprintf(fp, "%s\t%s\t%s\tr\n",
+        CHAR(STRING_ELT(colnames, 0)),
+        CHAR(STRING_ELT(colnames, 1)),
+        CHAR(STRING_ELT(colnames, 2)));
     double *r = malloc(xcol * ycol * sizeof(*r));
     for (int i = 0; i < zcol; i++) {
         double *z = REAL(zmat) + i * n;
