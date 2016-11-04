@@ -30,6 +30,13 @@ test_that("we can select results below a p-value threshold", {
     expect_equal(actual, expected)
 })
 
+test_that("we can use multiple cores", {
+    mat <- create_data()
+    foydle(mat$x, mat$y, mat$z, "data/out.txt", cores = 2)
+    actual <- read.delim("data/out.txt", as.is = TRUE)
+    expect_equal(actual, foydle_lm(mat$x, mat$y, mat$z))
+})
+
 context("conversions")
 
 test_that("p2t finds the (1 - p/2)th quantile of a t-distribution", {

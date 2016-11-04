@@ -9,10 +9,10 @@ static void print_header(FILE *fp, SEXP colnames);
 static void print_rvalues(FILE *fp, double *rvalue, int n, int xcol, int ycol,
     double threshold, const char **xnames, const char **ynames, const char *zname);
 
-void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *);
+void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *, int *);
 
 SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
-    SEXP n_, SEXP output_file, SEXP colnames, SEXP rvalue_threshold)
+    SEXP n_, SEXP output_file, SEXP colnames, SEXP rvalue_threshold, SEXP cores)
 {
     int n = asInteger(n_);
     int xcol = length(xmat) / n;
@@ -27,7 +27,7 @@ SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
     print_header(fp, colnames);
     for (int i = 0; i < zcol; i++) {
         F77_CALL(rval)(REAL(xmat), REAL(ymat), REAL(zmat) + i * n,
-            &xcol, &ycol, &n, rvalue);
+            &xcol, &ycol, &n, rvalue, INTEGER(cores));
         print_rvalues(fp, rvalue, xcol * ycol, xcol, ycol,
             asReal(rvalue_threshold), xnames, ynames, znames[i]);
     }

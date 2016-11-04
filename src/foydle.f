@@ -1,12 +1,13 @@
 C     ==================================================================
 
-      SUBROUTINE RVAL(XMAT, YMAT, ZC, XCOL, YCOL, N, R)
+      SUBROUTINE RVAL(XMAT, YMAT, ZC, XCOL, YCOL, N, R, CORES)
 
-      INTEGER XCOL, YCOL, N
+      INTEGER XCOL, YCOL, N, CORES
       DOUBLE PRECISION XMAT(XCOL * N), YMAT(YCOL * N), ZC(N)
       DOUBLE PRECISION R(XCOL * YCOL)
       DOUBLE PRECISION X(N), Y(N), Z(N), YZ(N), PROD
 
+C$OMP PARALLEL DO PRIVATE(X, Y, Z, YZ), NUM_THREADS(CORES)
       DO 20, J = 1, YCOL
          DO 10, I = 1, XCOL
 

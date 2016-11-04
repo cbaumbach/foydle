@@ -5,7 +5,7 @@
 \title{Fast Pearson Correlation For Linear Regression Interaction Term}
 \usage{
 foydle(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z"),
-  pvalue_threshold = NULL)
+  pvalue_threshold = NULL, cores = 1)
 }
 \arguments{
 \item{xmat, ymat, zmat}{Numeric matrices}
@@ -16,6 +16,8 @@ foydle(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z"),
 
 \item{pvalue_threshold}{Save only results with p-value below
 threshold (default: save all results)}
+
+\item{cores}{Number of CPU cores to use (default 1)}
 }
 \value{
 None.  A data frame with columns "x", "y", "z", and "r" is

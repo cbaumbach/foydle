@@ -11,6 +11,7 @@
 #' @param colnames Names for columns 1-3 in output table
 #' @param pvalue_threshold Save only results with p-value below
 #'     threshold (default: save all results)
+#' @param cores Number of CPU cores to use (default 1)
 #'
 #' @return None.  A data frame with columns "x", "y", "z", and "r" is
 #'     written to \code{output_file}.  Columns "x", "y", and "z"
@@ -22,7 +23,7 @@
 #'
 #' @export
 foydle <- function(xmat, ymat, zmat, output_file,
-    colnames = c("x", "y", "z"), pvalue_threshold = NULL)
+    colnames = c("x", "y", "z"), pvalue_threshold = NULL, cores = 1)
 {
     if (is.null(pvalue_threshold))
         rvalue_threshold <- Inf
@@ -31,7 +32,7 @@ foydle <- function(xmat, ymat, zmat, output_file,
     storage.mode(xmat) <- storage.mode(ymat) <- storage.mode(zmat) <- "double"
     .Call("compute_and_save_rvalues", xmat, ymat, zmat,
         nrow(xmat), output_file, colnames, rvalue_threshold,
-        PACKAGE = "foydle")
+        as.integer(cores), PACKAGE = "foydle")
 }
 
 foydle_lm <- function(xmat, ymat, zmat) {
