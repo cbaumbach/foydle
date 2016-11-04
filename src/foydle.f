@@ -10,8 +10,8 @@ C     ==================================================================
 
 C$OMP PARALLEL DO PRIVATE(X, Y, Z, YY, YZ, ZZ), NUM_THREADS(CORES)
       DO 20, J = 1, YCOL
-         CALL COPYCOL(YMAT, J, N, Y)
-         CALL COPYCOL(ZC, 1, N, Z)
+         CALL CPYCOL(YMAT, J, N, Y)
+         CALL CPYCOL(ZC, 1, N, Z)
          CALL MULT(Y, Z, YZ, N)
          CALL CENTER(Y, N)
          CALL CENTER(Z, N)
@@ -23,7 +23,7 @@ C$OMP PARALLEL DO PRIVATE(X, Y, Z, YY, YZ, ZZ), NUM_THREADS(CORES)
          CALL ORTHO(YZ, Z, ZZ, N)
          CALL NORM(YZ, N)
          DO 10, I = 1, XCOL
-            CALL COPYCOL(XMAT, I, N, X)
+            CALL CPYCOL(XMAT, I, N, X)
             CALL CENTER(X, N)
             CALL ORTHO(X, Y, YY, N)
             CALL ORTHO(X, Z, ZZ, N)
@@ -98,7 +98,7 @@ C     Compute sum of squares.
 
 C     ==================================================================
 
-      SUBROUTINE COPYCOL(MAT, COL, ROWS, X)
+      SUBROUTINE CPYCOL(MAT, COL, ROWS, X)
 
       INTEGER COL, ROWS
       DOUBLE PRECISION MAT(COL * ROWS), X(ROWS)
