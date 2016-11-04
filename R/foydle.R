@@ -12,13 +12,13 @@
 #' @param pvalue_threshold Save only results with p-value below
 #'     threshold (default: save all results)
 #'
-#' @return Returns \code{output_file} where a data frame with columns
-#'     "x", "y", "z", and "r" was written.  Columns "x", "y", and "z"
+#' @return None.  A data frame with columns "x", "y", "z", and "r" is
+#'     written to \code{output_file}.  Columns "x", "y", and "z"
 #'     contain the names of the columns of \code{xmat}, \code{ymat},
 #'     and \code{zmat} that were used in computing the corresponding
-#'     Pearson correlation coefficient in the "r" column.  Column
-#'     names other than "r" can be changed via the \code{colnames}
-#'     argument.
+#'     Pearson correlation coefficient in the "r" column.  The names
+#'     of columns other than the r-column can be changed via the
+#'     \code{colnames} argument.
 #'
 #' @export
 foydle <- function(xmat, ymat, zmat, output_file,
@@ -32,7 +32,6 @@ foydle <- function(xmat, ymat, zmat, output_file,
     .Call("compute_and_save_rvalues", xmat, ymat, zmat,
         nrow(xmat), output_file, colnames, rvalue_threshold,
         PACKAGE = "foydle")
-    output_file
 }
 
 foydle_lm <- function(xmat, ymat, zmat) {

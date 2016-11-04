@@ -18,13 +18,13 @@ foydle(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z"),
 threshold (default: save all results)}
 }
 \value{
-Returns \code{output_file} where a data frame with columns
-    "x", "y", "z", and "r" was written.  Columns "x", "y", and "z"
+None.  A data frame with columns "x", "y", "z", and "r" is
+    written to \code{output_file}.  Columns "x", "y", and "z"
     contain the names of the columns of \code{xmat}, \code{ymat},
     and \code{zmat} that were used in computing the corresponding
-    Pearson correlation coefficient in the "r" column.  Column
-    names other than "r" can be changed via the \code{colnames}
-    argument.
+    Pearson correlation coefficient in the "r" column.  The names
+    of columns other than the r-column can be changed via the
+    \code{colnames} argument.
 }
 \description{
 \code{foydle} computes Pearson correlation coefficients for the
