@@ -9,30 +9,23 @@ C     ==================================================================
 
 C$OMP PARALLEL DO PRIVATE(X, Y, Z, YZ), NUM_THREADS(CORES)
       DO 20, J = 1, YCOL
+         CALL COPYCOL(YMAT, J, N, Y)
+         CALL COPYCOL(ZC, 1, N, Z)
+         CALL MULT(Y, Z, YZ, N)
+         CALL CENTER(Y, N)
+         CALL CENTER(Z, N)
+         CALL CENTER(YZ, N)
+         CALL ORTHO(Z, Y, N)
+         CALL ORTHO(YZ, Y, N)
+         CALL ORTHO(YZ, Z, N)
+         CALL NORM(YZ, N)
          DO 10, I = 1, XCOL
-
             CALL COPYCOL(XMAT, I, N, X)
-            CALL COPYCOL(YMAT, J, N, Y)
-            CALL COPYCOL(ZC, 1, N, Z)
-
-            CALL MULT(Y, Z, YZ, N)
-
             CALL CENTER(X, N)
-            CALL CENTER(Y, N)
-            CALL CENTER(Z, N)
-            CALL CENTER(YZ, N)
-
-            CALL ORTHO(Z, Y, N)
-            CALL ORTHO(YZ, Y, N)
-            CALL ORTHO(YZ, Z, N)
             CALL ORTHO(X, Y, N)
             CALL ORTHO(X, Z, N)
-
-            CALL NORM(YZ, N)
             CALL NORM(X, N)
-
             R((J - 1) * XCOL + I) = PROD(X, YZ, N)
-
  10      CONTINUE
  20   CONTINUE
 
