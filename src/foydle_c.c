@@ -8,10 +8,12 @@ static const char **extract_colnames(SEXP mat);
 static void compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int n, const char **xnames,
     const char **ynames, const char **znames, const char **colnames,
-    const char *filename, double rvalue_threshold, int cores);
+    const char *filename, double rvalue_threshold, int cores,
+    int swap_y_and_z);
 static void print_header(FILE *fp, const char **colnames);
 static void print_rvalues(FILE *fp, double *rvalue, int n, int xcol, int ycol,
-    double threshold, const char **xnames, const char **ynames, const char *zname);
+    double threshold, const char **xnames, const char **ynames, const char *zname,
+    int swap_y_and_z);
 
 void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *, int *);
 void F77_NAME(center)(double *, int *, int *);
@@ -19,13 +21,15 @@ void F77_NAME(center)(double *, int *, int *);
 SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
     SEXP output_file, SEXP colnames_, SEXP rvalue_threshold, SEXP cores)
 {
+    int swap_y_and_z = ncols(zmat_) > ncols(ymat_);
+
     SEXP xmat = PROTECT(duplicate(xmat_));
-    SEXP ymat = PROTECT(duplicate(ymat_));
-    SEXP zmat = PROTECT(duplicate(zmat_));
+    SEXP ymat = PROTECT(duplicate(swap_y_and_z ? zmat_ : ymat_));
+    SEXP zmat = PROTECT(duplicate(swap_y_and_z ? ymat_ : zmat_));
 
     const char **xnames = extract_colnames(xmat_);
-    const char **ynames = extract_colnames(ymat_);
-    const char **znames = extract_colnames(zmat_);
+    const char **ynames = extract_colnames(swap_y_and_z ? zmat_ : ymat_);
+    const char **znames = extract_colnames(swap_y_and_z ? ymat_ : zmat_);
 
     const char *colnames[] = {
         CHAR(STRING_ELT(colnames_, 0)),
@@ -36,7 +40,7 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
     compute_and_save(REAL(xmat), REAL(ymat), REAL(zmat),
         ncols(xmat), ncols(ymat), ncols(zmat), asInteger(n),
         xnames, ynames, znames, colnames, CHAR(asChar(output_file)),
-        asReal(rvalue_threshold), asInteger(cores));
+        asReal(rvalue_threshold), asInteger(cores), swap_y_and_z);
 
     UNPROTECT(3);
     free(xnames);
@@ -58,7 +62,8 @@ static const char **extract_colnames(SEXP mat) {
 static void compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int n, const char **xnames,
     const char **ynames, const char **znames, const char **colnames,
-    const char *filename, double rvalue_threshold, int cores)
+    const char *filename, double rvalue_threshold, int cores,
+    int swap_y_and_z)
 {
     F77_CALL(center)(xmat, &n, &xcol);
     F77_CALL(center)(ymat, &n, &ycol);
@@ -70,7 +75,7 @@ static void compute_and_save(double *xmat, double *ymat, double *zmat,
     for (int i = 0; i < zcol; i++) {
         F77_CALL(rval)(xmat, ymat, zmat + i * n, &xcol, &ycol, &n, rvalue, &cores);
         print_rvalues(fp, rvalue, xcol * ycol, xcol, ycol,
-            rvalue_threshold, xnames, ynames, znames[i]);
+            rvalue_threshold, xnames, ynames, znames[i], swap_y_and_z);
     }
     fclose(fp);
     free(rvalue);
@@ -81,16 +86,30 @@ static void print_header(FILE *fp, const char **colnames) {
 }
 
 static void print_rvalues(FILE *fp, double *rvalue, int n, int xcol, int ycol,
-    double threshold, const char **xnames, const char **ynames, const char *zname)
+    double threshold, const char **xnames, const char **ynames, const char *zname,
+    int swap_y_and_z)
 {
-    if (!R_FINITE(threshold)) {
-        for (int i = 0; i < n; i++)
-            fprintf(fp, "%s\t%s\t%s\t%.9f\n",
-                xnames[i % xcol], ynames[i / xcol], zname, rvalue[i]);
+    if (swap_y_and_z) {
+        if (!R_FINITE(threshold)) {
+            for (int i = 0; i < n; i++)
+                fprintf(fp, "%s\t%s\t%s\t%.9f\n",
+                    xnames[i % xcol], zname, ynames[i / xcol], rvalue[i]);
+        } else {
+            for (int i = 0; i < n; i++)
+                if (fabs(rvalue[i]) >= threshold)
+                    fprintf(fp, "%s\t%s\t%s\t%.9f\n",
+                        xnames[i % xcol], zname, ynames[i / xcol], rvalue[i]);
+        }
     } else {
-        for (int i = 0; i < n; i++)
-            if (fabs(rvalue[i]) >= threshold)
+        if (!R_FINITE(threshold)) {
+            for (int i = 0; i < n; i++)
                 fprintf(fp, "%s\t%s\t%s\t%.9f\n",
                     xnames[i % xcol], ynames[i / xcol], zname, rvalue[i]);
+        } else {
+            for (int i = 0; i < n; i++)
+                if (fabs(rvalue[i]) >= threshold)
+                    fprintf(fp, "%s\t%s\t%s\t%.9f\n",
+                        xnames[i % xcol], ynames[i / xcol], zname, rvalue[i]);
+        }
     }
 }
