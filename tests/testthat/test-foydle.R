@@ -6,14 +6,19 @@ test_that("happy path", {
     mat <- create_data()
     foydle(mat$x, mat$y, mat$z, "data/out.txt")
     actual <- read.delim("data/out.txt", as.is = TRUE)
-    expect_equal(actual, foydle_lm(mat$x, mat$y, mat$z))
+    expect_same_contents(actual, foydle_lm(mat$x, mat$y, mat$z))
 })
 
 test_that("we can specify the column names for the result table", {
     mat <- create_data()
+
     foydle(mat$x, mat$y, mat$z, "data/out.txt", colnames = c("a", "b", "c"))
-    actual <- colnames(read.delim("data/out.txt", as.is = TRUE))
-    expect_equal(actual, c("a", "b", "c", "r"))
+    actual <- read.delim("data/out.txt", as.is = TRUE)
+
+    expected <- foydle_lm(mat$x, mat$y, mat$z)
+    names(expected) <- c("a", "b", "c", "r")
+
+    expect_same_contents(actual, expected)
 })
 
 test_that("we can select results below a p-value threshold", {
@@ -27,14 +32,14 @@ test_that("we can select results below a p-value threshold", {
     expected <- d[abs(d$r) >= rvalue_threshold, ]
     rownames(expected) <- NULL
 
-    expect_equal(actual, expected)
+    expect_same_contents(actual, expected)
 })
 
 test_that("we can use multiple cores", {
     mat <- create_data()
     foydle(mat$x, mat$y, mat$z, "data/out.txt", cores = 2)
     actual <- read.delim("data/out.txt", as.is = TRUE)
-    expect_equal(actual, foydle_lm(mat$x, mat$y, mat$z))
+    expect_same_contents(actual, foydle_lm(mat$x, mat$y, mat$z))
 })
 
 context("conversions")
