@@ -5,10 +5,12 @@ C     ==================================================================
       INTEGER XCOL, YCOL, N, CORES
       DOUBLE PRECISION XMAT(XCOL * N), YMAT(YCOL * N), ZC(N)
       DOUBLE PRECISION R(XCOL * YCOL)
-      DOUBLE PRECISION X(N), Y(N), Z(N), YZ(N), PROD
-      DOUBLE PRECISION YY, ZZ
+      DOUBLE PRECISION X(N), Y(N), Z(N), YZ(N), NORM, PROD
+      DOUBLE PRECISION YY, ZZ, XNORM, YZNORM
 
-C$OMP PARALLEL DO PRIVATE(X, Y, Z, YY, YZ, ZZ), NUM_THREADS(CORES)
+C$OMP PARALLEL DO
+C$OMP& PRIVATE(X, Y, Z, YY, YZ, ZZ, XNORM, YZNORM),
+C$OMP& NUM_THREADS(CORES)
       DO 20, J = 1, YCOL
          CALL CPYCOL(YMAT, J, N, Y)
          CALL CPYCOL(ZC, 1, N, Z)
@@ -19,13 +21,13 @@ C$OMP PARALLEL DO PRIVATE(X, Y, Z, YY, YZ, ZZ), NUM_THREADS(CORES)
          ZZ = PROD(Z, Z, N)
          CALL ORTHO(YZ, Y, YY, N)
          CALL ORTHO(YZ, Z, ZZ, N)
-         CALL NORM(YZ, N)
+         YZNORM = NORM(YZ, N)
          DO 10, I = 1, XCOL
             CALL CPYCOL(XMAT, I, N, X)
             CALL ORTHO(X, Y, YY, N)
             CALL ORTHO(X, Z, ZZ, N)
-            CALL NORM(X, N)
-            R((J - 1) * XCOL + I) = PROD(X, YZ, N)
+            XNORM = NORM(X, N)
+            R((J - 1) * XCOL + I) = PROD(X, YZ, N) / XNORM / YZNORM
  10      CONTINUE
  20   CONTINUE
 
@@ -53,23 +55,17 @@ C     ==================================================================
 
 C     ==================================================================
 
-      SUBROUTINE NORM(X, N)
+      DOUBLE PRECISION FUNCTION NORM(X, N)
 
       INTEGER N
-      DOUBLE PRECISION X(N), S1, S2
+      DOUBLE PRECISION X(N), SS
 
-C     Compute sum of squares.
-      S1 = 0.0
+      SS = 0.0
       DO 10, I = 1, N
-         S1 = S1 + X(I)**2
+         SS = SS + X(I)**2
  10   CONTINUE
+      NORM = DSQRT(SS)
 
-      S2 = DSQRT(S1)
-      DO 20, I = 1, N
-         X(I) = X(I) / S2
- 20   CONTINUE
-
-      RETURN
       END
 
 C     ==================================================================
