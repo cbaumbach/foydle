@@ -89,27 +89,13 @@ static void print_rvalues(FILE *fp, double *rvalue, int n, int xcol, int ycol,
     double threshold, const char **xnames, const char **ynames, const char *zname,
     int swap_y_and_z)
 {
-    if (swap_y_and_z) {
-        if (!R_FINITE(threshold)) {
-            for (int i = 0; i < n; i++)
-                fprintf(fp, "%s\t%s\t%s\t%.9f\n",
-                    xnames[i % xcol], zname, ynames[i / xcol], rvalue[i]);
-        } else {
-            for (int i = 0; i < n; i++)
-                if (fabs(rvalue[i]) >= threshold)
-                    fprintf(fp, "%s\t%s\t%s\t%.9f\n",
-                        xnames[i % xcol], zname, ynames[i / xcol], rvalue[i]);
-        }
-    } else {
-        if (!R_FINITE(threshold)) {
-            for (int i = 0; i < n; i++)
-                fprintf(fp, "%s\t%s\t%s\t%.9f\n",
-                    xnames[i % xcol], ynames[i / xcol], zname, rvalue[i]);
-        } else {
-            for (int i = 0; i < n; i++)
-                if (fabs(rvalue[i]) >= threshold)
-                    fprintf(fp, "%s\t%s\t%s\t%.9f\n",
-                        xnames[i % xcol], ynames[i / xcol], zname, rvalue[i]);
+    int no_threshold = !R_FINITE(threshold);
+    for (int i = 0; i < n; i++) {
+        if (no_threshold || fabs(rvalue[i]) >= threshold) {
+            const char *x = xnames[i % xcol];
+            const char *y = swap_y_and_z ? zname : ynames[i / xcol];
+            const char *z = swap_y_and_z ? ynames[i / xcol] : zname;
+            fprintf(fp, "%s\t%s\t%s\t%.9f\n", x, y, z, rvalue[i]);
         }
     }
 }
