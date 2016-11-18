@@ -13,13 +13,13 @@
 #'     threshold (default: save all results)
 #' @param cores Number of CPU cores to use (default 1)
 #'
-#' @return None.  A data frame with columns "x", "y", "z", and "r" is
-#'     written to \code{output_file}.  Columns "x", "y", and "z"
-#'     contain the names of the columns of \code{xmat}, \code{ymat},
-#'     and \code{zmat} that were used in computing the corresponding
-#'     Pearson correlation coefficient in the "r" column.  The names
-#'     of columns other than the r-column can be changed via the
-#'     \code{colnames} argument.
+#' @return A data frame with columns "x", "y", "z", and "r".  Columns
+#'     "x", "y", and "z" contain the names of the columns of
+#'     \code{xmat}, \code{ymat}, and \code{zmat} that were used in
+#'     computing the corresponding Pearson correlation coefficient in
+#'     the "r" column.  The names of columns other than the r-column
+#'     can be changed via the \code{colnames} argument.  The same data
+#'     frame is written to \code{output_file}.
 #'
 #' @export
 foydle <- function(xmat, ymat, zmat, output_file,
@@ -33,6 +33,7 @@ foydle <- function(xmat, ymat, zmat, output_file,
     .Call("compute_and_save_rvalues", xmat, ymat, zmat, nrow(xmat),
         output_file, colnames, rvalue_threshold, as.integer(cores),
         PACKAGE = "foydle")
+    read.delim(output_file, as.is = TRUE)
 }
 
 foydle_lm <- function(xmat, ymat, zmat) {
