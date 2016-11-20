@@ -158,7 +158,7 @@ static int annotate_rvalues(double *rvalue, int n, double threshold, int *xindex
 }
 
 static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
-    SEXP xnames2, SEXP ynames2, SEXP znames2, double *rvalues,
+    SEXP xnames, SEXP ynames, SEXP znames, double *rvalues,
     int nrow, const char **colnames)
 {
     SEXP x = PROTECT(allocVector(STRSXP, nrow));
@@ -166,9 +166,9 @@ static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
     SEXP z = PROTECT(allocVector(STRSXP, nrow));
     SEXP r = PROTECT(allocVector(REALSXP, nrow));
     for (int i = 0; i < nrow; i++) {
-        SET_STRING_ELT(x, i, STRING_ELT(xnames2, xindex[i]));
-        SET_STRING_ELT(y, i, STRING_ELT(ynames2, yindex[i]));
-        SET_STRING_ELT(z, i, STRING_ELT(znames2, zindex[i]));
+        SET_STRING_ELT(x, i, STRING_ELT(xnames, xindex[i]));
+        SET_STRING_ELT(y, i, STRING_ELT(ynames, yindex[i]));
+        SET_STRING_ELT(z, i, STRING_ELT(znames, zindex[i]));
         REAL(r)[i] = rvalues[i];
     }
 
