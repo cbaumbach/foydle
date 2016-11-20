@@ -5,6 +5,12 @@
 #include <stdio.h>
 #include <math.h>
 
+typedef struct {
+    const char **xnames, **ynames, **znames;
+    const char **x, **y, **z;
+    double *r, *rvalue;
+} *Storage;
+
 static int filter_and_annotate_rvalues(double *rvalue, int n, double threshold,
     const char **xnames, const char **ynames, const char **znames,
     const char **x, const char **y, const char **z, double *r,
@@ -13,7 +19,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int nrow, const char **xnames,
     const char **ynames, const char **znames, SEXP names,
     const char *filename, double rvalue_threshold, int cores,
-    int with_return, int swap_y_and_z);
+    int with_return, int swap_y_and_z, Storage storage);
 static SEXP create_data_frame(const char **x, const char **y,
     const char **z, double *r, int offset, SEXP names);
 static const char **extract_colnames(SEXP mat);
@@ -26,27 +32,25 @@ void F77_NAME(center)(double *matrix, int *nrow, int *ncol);
 
 SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
     SEXP output_file_, SEXP names, SEXP rvalue_threshold, SEXP cores,
-    SEXP with_return)
+    SEXP with_return, SEXP storage_)
 {
     int swap_y_and_z = ncols(zmat_) > ncols(ymat_);
     SEXP xmat = PROTECT(duplicate(xmat_));
     SEXP ymat = PROTECT(duplicate(swap_y_and_z ? zmat_ : ymat_));
     SEXP zmat = PROTECT(duplicate(swap_y_and_z ? ymat_ : zmat_));
 
-    const char **xnames = extract_colnames(xmat_);
-    const char **ynames = extract_colnames(ymat_);
-    const char **znames = extract_colnames(zmat_);
+    Storage storage = R_ExternalPtrAddr(storage_);
+    const char **xnames, **ynames, **znames;
+    xnames = storage->xnames = extract_colnames(xmat_);
+    ynames = storage->ynames = extract_colnames(ymat_);
+    znames = storage->znames = extract_colnames(zmat_);
 
     const char *output_file = (output_file_ == R_NilValue) ? NULL : CHAR(asChar(output_file_));
 
     SEXP result = compute_and_save(REAL(xmat), REAL(ymat), REAL(zmat),
         ncols(xmat), ncols(ymat), ncols(zmat), nrows(xmat), xnames,
         ynames, znames, names, output_file, asReal(rvalue_threshold),
-        asInteger(cores), asInteger(with_return), swap_y_and_z);
-
-    free(xnames);
-    free(ynames);
-    free(znames);
+        asInteger(cores), asInteger(with_return), swap_y_and_z, storage);
 
     UNPROTECT(3);
     return result;
@@ -65,20 +69,21 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int nrow, const char **xnames,
     const char **ynames, const char **znames, SEXP names,
     const char *filename, double rvalue_threshold, int cores,
-    int with_return, int swap_y_and_z)
+    int with_return, int swap_y_and_z, Storage storage)
 {
     F77_CALL(center)(xmat, &nrow, &xcol);
     F77_CALL(center)(ymat, &nrow, &ycol);
     F77_CALL(center)(zmat, &nrow, &zcol);
 
+    const char **x, **y, **z;
+    double *r, *rvalue;
     int nelem = with_return ? xcol * ycol * zcol : xcol * ycol;
-    const char **x = malloc(nelem * sizeof(*x));
-    const char **y = malloc(nelem * sizeof(*y));
-    const char **z = malloc(nelem * sizeof(*z));
-    double      *r = malloc(nelem * sizeof(*r));
+    x = storage->x = malloc(nelem * sizeof(*x));
+    y = storage->y = malloc(nelem * sizeof(*y));
+    z = storage->z = malloc(nelem * sizeof(*z));
+    r = storage->r = malloc(nelem * sizeof(*r));
     int offset = 0;             // index of next element in x, y, z, r
-
-    double *rvalue = malloc(xcol * ycol * sizeof(*rvalue));
+    rvalue = storage->rvalue = malloc(xcol * ycol * sizeof(*rvalue));
 
     FILE *fp = NULL;
     if (filename) {
@@ -98,11 +103,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     if (filename)
         fclose(fp);
 
-    SEXP result = with_return ? create_data_frame(x, y, z, r, offset, names) : R_NilValue;
-
-    free(x); free(y); free(z); free(r); free(rvalue);
-
-    return result;
+    return with_return ? create_data_frame(x, y, z, r, offset, names) : R_NilValue;
 }
 
 static void print_header(FILE *fp, SEXP names) {
@@ -173,4 +174,41 @@ static SEXP create_data_frame(const char **x_, const char **y_,
 
     UNPROTECT(8);
     return result;
+}
+
+SEXP create_storage(void) {
+    Storage storage = malloc(sizeof(*storage));
+    storage->xnames = NULL;
+    storage->ynames = NULL;
+    storage->znames = NULL;
+    storage->x = NULL;
+    storage->y = NULL;
+    storage->z = NULL;
+    storage->r = NULL;
+    storage->rvalue = NULL;
+    return R_MakeExternalPtr(storage, R_NilValue, R_NilValue);
+}
+
+SEXP free_storage(SEXP storage_) {
+    Storage storage = R_ExternalPtrAddr(storage_);
+    if (!storage)
+        return R_NilValue;
+    if (storage->xnames)
+        free(storage->xnames);
+    if (storage->ynames)
+        free(storage->ynames);
+    if (storage->znames)
+        free(storage->znames);
+    if (storage->x)
+        free(storage->x);
+    if (storage->y)
+        free(storage->y);
+    if (storage->z)
+        free(storage->z);
+    if (storage->r)
+        free(storage->r);
+    if (storage->rvalue)
+        free(storage->rvalue);
+    R_ClearExternalPtr(storage_);
+    return R_NilValue;
 }
