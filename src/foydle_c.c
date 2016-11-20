@@ -144,17 +144,17 @@ static void print_rvalues(FILE *fp, double *rvalue, int n, int xcol, int ycol,
 static int annotate_rvalues(double *rvalue, int n, double threshold, int *xindex, int *yindex, int *zindex, double *rvalues, int xcol, int zi, int swap_y_and_z, int offset)
 {
     int no_threshold = !R_FINITE(threshold);
-    int result = 0;
+    int initial_offset = offset;
     for (int i = 0; i < n; i++) {
         if (no_threshold || fabs(rvalue[i]) >= threshold) {
-            xindex[i + offset] = i % xcol;
-            yindex[i + offset] = swap_y_and_z ? zi : i / xcol;
-            zindex[i + offset] = swap_y_and_z ? i / xcol : zi;
-            rvalues[i + offset] = rvalue[i];
-            ++result;
+            xindex[offset] = i % xcol;
+            yindex[offset] = swap_y_and_z ? zi : i / xcol;
+            zindex[offset] = swap_y_and_z ? i / xcol : zi;
+            rvalues[offset] = rvalue[i];
+            ++offset;
         }
     }
-    return result;
+    return offset - initial_offset;
 }
 
 static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
