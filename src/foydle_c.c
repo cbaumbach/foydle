@@ -7,18 +7,19 @@
 static const char **extract_colnames(SEXP mat);
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int n, const char **xnames,
-    const char **ynames, const char **znames, SEXP xnames2, SEXP ynames2,
-    SEXP znames2, const char **colnames, const char *filename,
-    double rvalue_threshold, int cores, int with_return, int swap_y_and_z);
+    const char **ynames, const char **znames, const char **colnames,
+    const char *filename, double rvalue_threshold, int cores,
+    int with_return, int swap_y_and_z);
 static void print_header(FILE *fp, const char **colnames);
 static void print_rvalues(FILE *fp, int *xindex, int *yindex, int *zindex,
-    SEXP xnames, SEXP ynames, SEXP znames, double *rvalues, int offset, int nsignif);
+    const char **xnames, const char **ynames, const char **znames,
+    double *rvalues, int offset, int nsignif);
 static int annotate_rvalues(double *rvalue, int n, double threshold,
     int *xindex, int *yindex, int *zindex, double *rvalues, int xcol,
     int zi, int swap_y_and_z, int offset);
 static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
-    SEXP xnames2, SEXP ynames2, SEXP znames2, double *rvalues, int offset,
-    const char **colnames);
+    const char **xnames, const char **ynames, const char **znames,
+    double *rvalues, int offset, const char **colnames);
 
 void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *, int *);
 void F77_NAME(center)(double *, int *, int *);
@@ -28,18 +29,13 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
     SEXP with_return)
 {
     int swap_y_and_z = ncols(zmat_) > ncols(ymat_);
-
     SEXP xmat = PROTECT(duplicate(xmat_));
     SEXP ymat = PROTECT(duplicate(swap_y_and_z ? zmat_ : ymat_));
     SEXP zmat = PROTECT(duplicate(swap_y_and_z ? ymat_ : zmat_));
 
     const char **xnames = extract_colnames(xmat_);
-    const char **ynames = extract_colnames(swap_y_and_z ? zmat_ : ymat_);
-    const char **znames = extract_colnames(swap_y_and_z ? ymat_ : zmat_);
-
-    SEXP xnames2 = VECTOR_ELT(getAttrib(xmat_, R_DimNamesSymbol), 1);
-    SEXP ynames2 = VECTOR_ELT(getAttrib(ymat_, R_DimNamesSymbol), 1);
-    SEXP znames2 = VECTOR_ELT(getAttrib(zmat_, R_DimNamesSymbol), 1);
+    const char **ynames = extract_colnames(ymat_);
+    const char **znames = extract_colnames(zmat_);
 
     const char *colnames[] = {
         CHAR(STRING_ELT(colnames_, 0)),
@@ -49,7 +45,7 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
 
     SEXP result = compute_and_save(REAL(xmat), REAL(ymat), REAL(zmat),
         ncols(xmat), ncols(ymat), ncols(zmat), asInteger(n),
-        xnames, ynames, znames, xnames2, ynames2, znames2, colnames,
+        xnames, ynames, znames, colnames,
         (output_file == R_NilValue) ? NULL : CHAR(asChar(output_file)),
         asReal(rvalue_threshold), asInteger(cores), asInteger(with_return),
         swap_y_and_z);
@@ -73,9 +69,9 @@ static const char **extract_colnames(SEXP mat) {
 
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int n, const char **xnames,
-    const char **ynames, const char **znames, SEXP xnames2, SEXP ynames2,
-    SEXP znames2, const char **colnames, const char *filename,
-    double rvalue_threshold, int cores, int with_return, int swap_y_and_z)
+    const char **ynames, const char **znames, const char **colnames,
+    const char *filename, double rvalue_threshold, int cores,
+    int with_return, int swap_y_and_z)
 {
     int *xindex = NULL, *yindex = NULL, *zindex = NULL;
     double *rvalues = NULL;
@@ -103,7 +99,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
             xindex, yindex, zindex, rvalues, xcol, i, swap_y_and_z,
             with_return ? offset : 0);
         if (filename)
-            print_rvalues(fp, xindex, yindex, zindex, xnames2, ynames2, znames2,
+            print_rvalues(fp, xindex, yindex, zindex, xnames, ynames, znames,
                 rvalues, with_return ? offset : 0, nsignif);
         offset += nsignif;
     }
@@ -120,7 +116,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     }
 
     SEXP result = create_data_frame(xindex, yindex, zindex,
-        xnames2, ynames2, znames2, rvalues, offset, colnames);
+        xnames, ynames, znames, rvalues, offset, colnames);
 
     free(xindex);
     free(yindex);
@@ -135,13 +131,14 @@ static void print_header(FILE *fp, const char **colnames) {
 }
 
 static void print_rvalues(FILE *fp, int *xindex, int *yindex, int *zindex,
-    SEXP xnames, SEXP ynames, SEXP znames, double *rvalues, int offset, int nsignif)
+    const char **xnames, const char **ynames, const char **znames,
+    double *rvalues, int offset, int nsignif)
 {
     for (int i = offset; i < offset + nsignif; i++) {
         fprintf(fp, "%s\t%s\t%s\t%.9f\n",
-            CHAR(STRING_ELT(xnames, xindex[i])),
-            CHAR(STRING_ELT(ynames, yindex[i])),
-            CHAR(STRING_ELT(znames, zindex[i])),
+            xnames[xindex[i]],
+            ynames[yindex[i]],
+            znames[zindex[i]],
             rvalues[i]);
     }
 }
@@ -165,17 +162,17 @@ static int annotate_rvalues(double *rvalue, int n, double threshold,
 }
 
 static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
-    SEXP xnames, SEXP ynames, SEXP znames, double *rvalues,
-    int nrow, const char **colnames)
+    const char **xnames, const char **ynames, const char **znames,
+    double *rvalues, int nrow, const char **colnames)
 {
     SEXP x = PROTECT(allocVector(STRSXP, nrow));
     SEXP y = PROTECT(allocVector(STRSXP, nrow));
     SEXP z = PROTECT(allocVector(STRSXP, nrow));
     SEXP r = PROTECT(allocVector(REALSXP, nrow));
     for (int i = 0; i < nrow; i++) {
-        SET_STRING_ELT(x, i, STRING_ELT(xnames, xindex[i]));
-        SET_STRING_ELT(y, i, STRING_ELT(ynames, yindex[i]));
-        SET_STRING_ELT(z, i, STRING_ELT(znames, zindex[i]));
+        SET_STRING_ELT(x, i, mkChar(xnames[xindex[i]]));
+        SET_STRING_ELT(y, i, mkChar(ynames[yindex[i]]));
+        SET_STRING_ELT(z, i, mkChar(znames[zindex[i]]));
         REAL(r)[i] = rvalues[i];
     }
 
