@@ -98,17 +98,9 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     if (filename)
         fclose(fp);
 
-    SEXP result;
-    if (with_return)
-        result = create_data_frame(x, y, z, r, offset, names);
-    else
-        result = R_NilValue;
+    SEXP result = with_return ? create_data_frame(x, y, z, r, offset, names) : R_NilValue;
 
-    free(x);
-    free(y);
-    free(z);
-    free(r);
-    free(rvalue);
+    free(x); free(y); free(z); free(r); free(rvalue);
 
     return result;
 }
