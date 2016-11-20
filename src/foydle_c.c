@@ -7,10 +7,10 @@
 static const char **extract_colnames(SEXP mat);
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int n, const char **xnames,
-    const char **ynames, const char **znames, const char **colnames,
+    const char **ynames, const char **znames, SEXP colnames,
     const char *filename, double rvalue_threshold, int cores,
     int with_return, int swap_y_and_z);
-static void print_header(FILE *fp, const char **colnames);
+static void print_header(FILE *fp, SEXP colnames);
 static void print_rvalues(FILE *fp, int *xindex, int *yindex, int *zindex,
     const char **xnames, const char **ynames, const char **znames,
     double *rvalues, int offset, int nsignif);
@@ -19,13 +19,13 @@ static int annotate_rvalues(double *rvalue, int n, double threshold,
     int zi, int swap_y_and_z, int offset);
 static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
     const char **xnames, const char **ynames, const char **znames,
-    double *rvalues, int offset, const char **colnames);
+    double *rvalues, int offset, SEXP colnames);
 
 void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *, int *);
 void F77_NAME(center)(double *, int *, int *);
 
 SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
-    SEXP output_file, SEXP colnames_, SEXP rvalue_threshold, SEXP cores,
+    SEXP output_file, SEXP colnames, SEXP rvalue_threshold, SEXP cores,
     SEXP with_return)
 {
     int swap_y_and_z = ncols(zmat_) > ncols(ymat_);
@@ -37,11 +37,6 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
     const char **ynames = extract_colnames(ymat_);
     const char **znames = extract_colnames(zmat_);
 
-    const char *colnames[] = {
-        CHAR(STRING_ELT(colnames_, 0)),
-        CHAR(STRING_ELT(colnames_, 1)),
-        CHAR(STRING_ELT(colnames_, 2))
-    };
 
     SEXP result = compute_and_save(REAL(xmat), REAL(ymat), REAL(zmat),
         ncols(xmat), ncols(ymat), ncols(zmat), asInteger(n),
@@ -69,7 +64,7 @@ static const char **extract_colnames(SEXP mat) {
 
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int n, const char **xnames,
-    const char **ynames, const char **znames, const char **colnames,
+    const char **ynames, const char **znames, SEXP colnames,
     const char *filename, double rvalue_threshold, int cores,
     int with_return, int swap_y_and_z)
 {
@@ -126,8 +121,11 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     return result;
 }
 
-static void print_header(FILE *fp, const char **colnames) {
-    fprintf(fp, "%s\t%s\t%s\tr\n", colnames[0], colnames[1], colnames[2]);
+static void print_header(FILE *fp, SEXP colnames) {
+    fprintf(fp, "%s\t%s\t%s\tr\n",
+        CHAR(STRING_ELT(colnames, 0)),
+        CHAR(STRING_ELT(colnames, 1)),
+        CHAR(STRING_ELT(colnames, 2)));
 }
 
 static void print_rvalues(FILE *fp, int *xindex, int *yindex, int *zindex,
@@ -163,7 +161,7 @@ static int annotate_rvalues(double *rvalue, int n, double threshold,
 
 static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
     const char **xnames, const char **ynames, const char **znames,
-    double *rvalues, int nrow, const char **colnames)
+    double *rvalues, int nrow, SEXP colnames)
 {
     SEXP x = PROTECT(allocVector(STRSXP, nrow));
     SEXP y = PROTECT(allocVector(STRSXP, nrow));
@@ -187,9 +185,9 @@ static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
     setAttrib(result, R_ClassSymbol, class);
 
     SEXP names = PROTECT(allocVector(STRSXP, 4));
-    SET_STRING_ELT(names, 0, mkChar(colnames[0]));
-    SET_STRING_ELT(names, 1, mkChar(colnames[1]));
-    SET_STRING_ELT(names, 2, mkChar(colnames[2]));
+    SET_STRING_ELT(names, 0, STRING_ELT(colnames, 0));
+    SET_STRING_ELT(names, 1, STRING_ELT(colnames, 1));
+    SET_STRING_ELT(names, 2, STRING_ELT(colnames, 2));
     SET_STRING_ELT(names, 3, mkChar("r"));
     setAttrib(result, R_NamesSymbol, names);
 
