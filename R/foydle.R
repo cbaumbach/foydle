@@ -22,7 +22,7 @@
 #'     frame is written to \code{output_file}.
 #'
 #' @export
-foydle <- function(xmat, ymat, zmat, output_file,
+foydle <- function(xmat, ymat, zmat, output_file = NULL,
     colnames = c("x", "y", "z"), pvalue_threshold = NULL, cores = 1)
 {
     if (is.null(pvalue_threshold))
@@ -30,9 +30,11 @@ foydle <- function(xmat, ymat, zmat, output_file,
     else
         rvalue_threshold <- p2r(pvalue_threshold, df = nrow(xmat) - 4)
     storage.mode(xmat) <- storage.mode(ymat) <- storage.mode(zmat) <- "double"
-    .Call("compute_and_save_rvalues", xmat, ymat, zmat, nrow(xmat),
+    result <- .Call("compute_and_save_rvalues", xmat, ymat, zmat, nrow(xmat),
         output_file, colnames, rvalue_threshold, as.integer(cores),
         PACKAGE = "foydle")
+    if (is.null(output_file))
+        return(result)
     read.delim(output_file, as.is = TRUE)
 }
 

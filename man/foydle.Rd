@@ -4,7 +4,7 @@
 \alias{foydle}
 \title{Fast Pearson Correlation For Linear Regression Interaction Term}
 \usage{
-foydle(xmat, ymat, zmat, output_file, colnames = c("x", "y", "z"),
+foydle(xmat, ymat, zmat, output_file = NULL, colnames = c("x", "y", "z"),
   pvalue_threshold = NULL, cores = 1)
 }
 \arguments{
@@ -20,13 +20,13 @@ threshold (default: save all results)}
 \item{cores}{Number of CPU cores to use (default 1)}
 }
 \value{
-None.  A data frame with columns "x", "y", "z", and "r" is
-    written to \code{output_file}.  Columns "x", "y", and "z"
-    contain the names of the columns of \code{xmat}, \code{ymat},
-    and \code{zmat} that were used in computing the corresponding
-    Pearson correlation coefficient in the "r" column.  The names
-    of columns other than the r-column can be changed via the
-    \code{colnames} argument.
+A data frame with columns "x", "y", "z", and "r".  Columns
+    "x", "y", and "z" contain the names of the columns of
+    \code{xmat}, \code{ymat}, and \code{zmat} that were used in
+    computing the corresponding Pearson correlation coefficient in
+    the "r" column.  The names of columns other than the r-column
+    can be changed via the \code{colnames} argument.  The same data
+    frame is written to \code{output_file}.
 }
 \description{
 \code{foydle} computes Pearson correlation coefficients for the

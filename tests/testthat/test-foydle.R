@@ -4,8 +4,9 @@ context("foydle")
 
 test_that("happy path", {
     mat <- create_data()
-    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt")
-    expect_same_contents(actual, foydle_lm(mat$x, mat$y, mat$z))
+    actual <- foydle(mat$x, mat$y, mat$z)
+    expected <- foydle_lm(mat$x, mat$y, mat$z)
+    expect_same_contents(actual, expected)
 })
 
 test_that("we can specify the column names for the result table", {
