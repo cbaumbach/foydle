@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 
-typedef struct {
+typedef struct StorageStruct {
     const char **xnames, **ynames, **znames;
     const char **x, **y, **z;
     double *r, *rvalue;
@@ -40,10 +40,9 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
     SEXP zmat = PROTECT(duplicate(swap_y_and_z ? ymat_ : zmat_));
 
     Storage storage = R_ExternalPtrAddr(storage_);
-    const char **xnames, **ynames, **znames;
-    xnames = storage->xnames = extract_colnames(xmat_);
-    ynames = storage->ynames = extract_colnames(ymat_);
-    znames = storage->znames = extract_colnames(zmat_);
+    const char **xnames = storage->xnames = extract_colnames(xmat_);
+    const char **ynames = storage->ynames = extract_colnames(ymat_);
+    const char **znames = storage->znames = extract_colnames(zmat_);
 
     const char *output_file = (output_file_ == R_NilValue) ? NULL : CHAR(asChar(output_file_));
 
@@ -59,7 +58,7 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
 static const char **extract_colnames(SEXP mat) {
     SEXP colnames = VECTOR_ELT(getAttrib(mat, R_DimNamesSymbol), 1);
     int n = length(colnames);
-    const char **result = malloc(n * sizeof(*result));
+    const char **result = Calloc(n, const char *);
     for (int i = 0; i < n; i++)
         result[i] = CHAR(STRING_ELT(colnames, i));
     return result;
@@ -75,15 +74,13 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     F77_CALL(center)(ymat, &nrow, &ycol);
     F77_CALL(center)(zmat, &nrow, &zcol);
 
-    const char **x, **y, **z;
-    double *r, *rvalue;
     int nelem = with_return ? xcol * ycol * zcol : xcol * ycol;
-    x = storage->x = malloc(nelem * sizeof(*x));
-    y = storage->y = malloc(nelem * sizeof(*y));
-    z = storage->z = malloc(nelem * sizeof(*z));
-    r = storage->r = malloc(nelem * sizeof(*r));
+    const char **x = storage->x = Calloc(nelem, const char *);
+    const char **y = storage->y = Calloc(nelem, const char *);
+    const char **z = storage->z = Calloc(nelem, const char *);
+    double *r = storage->r = Calloc(nelem, double);
     int offset = 0;             // index of next element in x, y, z, r
-    rvalue = storage->rvalue = malloc(xcol * ycol * sizeof(*rvalue));
+    double *rvalue = storage->rvalue = Calloc(xcol * ycol, double);
 
     FILE *fp = NULL;
     if (filename) {
@@ -177,7 +174,7 @@ static SEXP create_data_frame(const char **x_, const char **y_,
 }
 
 SEXP create_storage(void) {
-    Storage storage = malloc(sizeof(*storage));
+    Storage storage = Calloc(1, struct StorageStruct);
     storage->xnames = NULL;
     storage->ynames = NULL;
     storage->znames = NULL;
@@ -194,21 +191,21 @@ SEXP free_storage(SEXP storage_) {
     if (!storage)
         return R_NilValue;
     if (storage->xnames)
-        free(storage->xnames);
+        Free(storage->xnames);
     if (storage->ynames)
-        free(storage->ynames);
+        Free(storage->ynames);
     if (storage->znames)
-        free(storage->znames);
+        Free(storage->znames);
     if (storage->x)
-        free(storage->x);
+        Free(storage->x);
     if (storage->y)
-        free(storage->y);
+        Free(storage->y);
     if (storage->z)
-        free(storage->z);
+        Free(storage->z);
     if (storage->r)
-        free(storage->r);
+        Free(storage->r);
     if (storage->rvalue)
-        free(storage->rvalue);
+        Free(storage->rvalue);
     R_ClearExternalPtr(storage_);
     return R_NilValue;
 }
