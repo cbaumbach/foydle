@@ -2,10 +2,10 @@
 % Please edit documentation in R/foydle.R
 \name{foydle}
 \alias{foydle}
-\title{Fast Pearson Correlation For Linear Regression Interaction Term}
+\title{Fast P-Values For Linear Regression Interaction Term}
 \usage{
 foydle(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
-  names = c("x", "y", "z", "r"), pvalue_threshold = NULL, cores = 1)
+  names = c("x", "y", "z", "pvalue"), threshold = NULL, cores = 1)
 }
 \arguments{
 \item{xmat, ymat, zmat}{Numeric matrices}
@@ -16,24 +16,24 @@ foydle(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
 
 \item{names}{Names for columns in output table}
 
-\item{pvalue_threshold}{Save only results with p-value below
+\item{threshold}{Save only results with p-value below
 threshold (default: save all results)}
 
 \item{cores}{Number of CPU cores to use (default 1)}
 }
 \value{
 If \code{with_return} is \code{TRUE}, the function returns
-    a data frame with columns "x", "y", "z", and "r".  Columns "x",
-    "y", and "z" contain the names of the columns of \code{xmat},
-    \code{ymat}, and \code{zmat} that were used in computing the
-    corresponding Pearson correlation coefficient in the "r"
-    column.  The names of columns other than the r-column can be
-    changed via the \code{colnames} argument.  The same data frame
-    is written to \code{output_file} if specified.
+    a data frame with columns "x", "y", "z", and "pvalue".  Columns
+    "x", "y", and "z" contain the names of the columns of
+    \code{xmat}, \code{ymat}, and \code{zmat} that were used in
+    computing the p-value in the "pvalue" column.  The column names
+    of the resulting table can be changed via the \code{names}
+    argument.  The same data frame that is returned is also written
+    to \code{output_file}.
 }
 \description{
-\code{foydle} computes Pearson correlation coefficients for the
-interaction term in the linear regression
+\code{foydle} computes p-values for the interaction term in the
+linear regression
     \deqn{x = \beta_0 + \beta_1 y + \beta_2 z + \beta_3 y*z}{x = b0 + b1 y + b2 z + b3 y*z}
 where \eqn{x}, \eqn{y}, and \eqn{z} are columns from \code{xmat},
 \code{ymat}, and \code{zmat}, respectively.

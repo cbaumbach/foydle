@@ -1,6 +1,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <R_ext/Utils.h>
+#include <Rmath.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -8,24 +9,25 @@
 typedef struct StorageStruct {
     const char **xnames, **ynames, **znames;
     const char **x, **y, **z;
-    double *r, *rvalue;
+    double *pvalue, *rvalue;
 } *Storage;
 
-static int filter_and_annotate_rvalues(double *rvalue, int n, double threshold,
-    const char **xnames, const char **ynames, const char **znames,
-    const char **x, const char **y, const char **z, double *r,
-    int xcol, int zi, int swap_y_and_z, int initial_offset);
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int nrow, const char **xnames,
     const char **ynames, const char **znames, SEXP names,
     const char *filename, double rvalue_threshold, int cores,
     int with_return, int swap_y_and_z, Storage storage);
 static SEXP create_data_frame(const char **x, const char **y,
-    const char **z, double *r, int offset, SEXP names);
+    const char **z, double *pvalue, int offset, SEXP names);
 static const char **extract_colnames(SEXP mat);
+static int filter_and_convert_rvalues(double *rvalue, int n, double threshold,
+    const char **xnames, const char **ynames, const char **znames,
+    const char **x, const char **y, const char **z, double *pvalue,
+    int xcol, int zi, int swap_y_and_z, int initial_offset, int nrow);
 static void print_header(FILE *fp, SEXP names);
 static void print_rvalues(FILE *fp, const char **x, const char **y,
-    const char **z, double *r, int offset, int nsignif);
+    const char **z, double *pvalue, int offset, int nsignif);
+static double r2p(double r, int df);
 
 void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
 void F77_NAME(center)(double *matrix, int *nrow, int *ncol);
@@ -88,7 +90,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     const char **x = storage->x = Calloc(capacity, const char *);
     const char **y = storage->y = Calloc(capacity, const char *);
     const char **z = storage->z = Calloc(capacity, const char *);
-    double *r = storage->r = Calloc(capacity, double);
+    double *pvalue = storage->pvalue = Calloc(capacity, double);
     int offset = 0;             // index of next element in x, y, z, r
     double *rvalue = storage->rvalue = Calloc(minimum_capacity, double);
 
@@ -103,14 +105,14 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
             x = storage->x = Realloc(x, capacity + minimum_capacity, const char *);
             y = storage->y = Realloc(y, capacity + minimum_capacity, const char *);
             z = storage->z = Realloc(z, capacity + minimum_capacity, const char *);
-            r = storage->r = Realloc(r, capacity + minimum_capacity, double);
+            pvalue = storage->pvalue = Realloc(pvalue, capacity + minimum_capacity, double);
             capacity += minimum_capacity;
         }
         F77_CALL(rval)(xmat, ymat, zmat + i * nrow, &xcol, &ycol, &nrow, rvalue, &cores);
-        int nsignif = filter_and_annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
-            xnames, ynames, znames, x, y, z, r, xcol, i, swap_y_and_z, offset);
+        int nsignif = filter_and_convert_rvalues(rvalue, xcol * ycol, rvalue_threshold,
+            xnames, ynames, znames, x, y, z, pvalue, xcol, i, swap_y_and_z, offset, nrow);
         if (filename)
-            print_rvalues(fp, x, y, z, r, offset, nsignif);
+            print_rvalues(fp, x, y, z, pvalue, offset, nsignif);
         if (with_return)
             offset += nsignif;
         R_CheckUserInterrupt();
@@ -118,7 +120,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     if (filename)
         fclose(fp);
 
-    return with_return ? create_data_frame(x, y, z, r, offset, names) : R_NilValue;
+    return with_return ? create_data_frame(x, y, z, pvalue, offset, names) : R_NilValue;
 }
 
 static void print_header(FILE *fp, SEXP names) {
@@ -130,17 +132,18 @@ static void print_header(FILE *fp, SEXP names) {
 }
 
 static void print_rvalues(FILE *fp, const char **x, const char **y,
-    const char **z, double *r, int offset, int nsignif)
+    const char **z, double *pvalue, int offset, int nsignif)
 {
     for (int i = offset; i < offset + nsignif; i++)
-        fprintf(fp, "%s\t%s\t%s\t%.9f\n", x[i], y[i], z[i], r[i]);
+        fprintf(fp, "%s\t%s\t%s\t%.9f\n", x[i], y[i], z[i], pvalue[i]);
 }
 
-static int filter_and_annotate_rvalues(double *rvalue, int n, double threshold,
+static int filter_and_convert_rvalues(double *rvalue, int n, double threshold,
     const char **xnames, const char **ynames, const char **znames,
-    const char **x, const char **y, const char **z, double *r,
-    int xcol, int zi, int swap_y_and_z, int initial_offset)
+    const char **x, const char **y, const char **z, double *pvalue,
+    int xcol, int zi, int swap_y_and_z, int initial_offset, int nrow)
 {
+    int df = nrow - 4;
     int no_threshold = !R_FINITE(threshold);
     int offset = initial_offset;
     for (int i = 0; i < n; i++) {
@@ -148,32 +151,37 @@ static int filter_and_annotate_rvalues(double *rvalue, int n, double threshold,
             x[offset] = xnames[i % xcol];
             y[offset] = ynames[swap_y_and_z ? zi : i / xcol];
             z[offset] = znames[swap_y_and_z ? i / xcol : zi];
-            r[offset] = rvalue[i];
+            pvalue[offset] = r2p(rvalue[i], df);
             ++offset;
         }
     }
     return offset - initial_offset;
 }
 
+static double r2p(double r, int df) {
+    double t = fabs(r * sqrt(df / (1 - r*r)));
+    return 2 * pt(t, df, 0, 0);
+}
+
 static SEXP create_data_frame(const char **x_, const char **y_,
-    const char **z_, double *r_, int nrow, SEXP names_)
+    const char **z_, double *pvalue_, int nrow, SEXP names_)
 {
     SEXP x = PROTECT(allocVector(STRSXP, nrow));
     SEXP y = PROTECT(allocVector(STRSXP, nrow));
     SEXP z = PROTECT(allocVector(STRSXP, nrow));
-    SEXP r = PROTECT(allocVector(REALSXP, nrow));
+    SEXP pvalue = PROTECT(allocVector(REALSXP, nrow));
     for (int i = 0; i < nrow; i++) {
         SET_STRING_ELT(x, i, mkChar(x_[i]));
         SET_STRING_ELT(y, i, mkChar(y_[i]));
         SET_STRING_ELT(z, i, mkChar(z_[i]));
-        REAL(r)[i] = r_[i];
+        REAL(pvalue)[i] = pvalue_[i];
     }
 
     SEXP result = PROTECT(allocVector(VECSXP, 4));
     SET_VECTOR_ELT(result, 0, x);
     SET_VECTOR_ELT(result, 1, y);
     SET_VECTOR_ELT(result, 2, z);
-    SET_VECTOR_ELT(result, 3, r);
+    SET_VECTOR_ELT(result, 3, pvalue);
 
     SEXP class = PROTECT(allocVector(STRSXP, 1));
     SET_STRING_ELT(class, 0, mkChar("data.frame"));
@@ -199,7 +207,7 @@ SEXP create_storage(void) {
     storage->x = NULL;
     storage->y = NULL;
     storage->z = NULL;
-    storage->r = NULL;
+    storage->pvalue = NULL;
     storage->rvalue = NULL;
     return R_MakeExternalPtr(storage, R_NilValue, R_NilValue);
 }
@@ -220,8 +228,8 @@ SEXP free_storage(SEXP storage_) {
         Free(storage->y);
     if (storage->z)
         Free(storage->z);
-    if (storage->r)
-        Free(storage->r);
+    if (storage->pvalue)
+        Free(storage->pvalue);
     if (storage->rvalue)
         Free(storage->rvalue);
     R_ClearExternalPtr(storage_);

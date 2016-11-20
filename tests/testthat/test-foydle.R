@@ -11,18 +11,17 @@ test_that("happy path", {
 
 test_that("we can specify the (column) names of the result table", {
     mat <- create_data()
-    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", names = c("a", "b", "c", "r-value"))
+    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", names = c("a", "b", "c", "p"))
     expected <- foydle_lm(mat$x, mat$y, mat$z)
-    names(expected) <- c("a", "b", "c", "r-value")
+    names(expected) <- c("a", "b", "c", "p")
     expect_same_contents(actual, expected)
 })
 
-test_that("we can select results below a p-value threshold", {
+test_that("we can restrict result to those with p-values below a given threshold", {
     mat <- create_data()
-    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", pvalue_threshold = .7)
+    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", threshold = .7)
     d <- foydle_lm(mat$x, mat$y, mat$z)
-    rvalue_threshold <- p2r(.7, df = nrow(mat$x) - 4)
-    expected <- d[abs(d$r) >= rvalue_threshold, ]
+    expected <- d[d$pvalue <= .7, ]
     rownames(expected) <- NULL
     expect_same_contents(actual, expected)
 })

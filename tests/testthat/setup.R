@@ -2,7 +2,7 @@ unlink("data", recursive = TRUE, force = TRUE)
 dir.create("data", showWarnings = FALSE)
 
 expect_same_contents <- function(actual, expected) {
-    rvalue_column <- names(expected)[ncol(expected)]
+    pvalue_column <- names(expected)[ncol(expected)]
     if (nrow(actual) != nrow(expected)) {
         fail(sprintf("nrow(actual) != nrow(expected): %d vs %d",
             nrow(actual), nrow(expected)))
@@ -23,7 +23,7 @@ expect_same_contents <- function(actual, expected) {
             paste(duplicated_columns, collapse = ", ")))
         return()
     }
-    merge_columns <- setdiff(names(expected), rvalue_column)
+    merge_columns <- setdiff(names(expected), pvalue_column)
     xyz <- setNames(as.list(names(actual)[1:3]), c("x", "y", "z"))
     combine <- function(columns) {
         do.call(function(...) paste(..., sep = "\r"), columns)
@@ -39,11 +39,13 @@ expect_same_contents <- function(actual, expected) {
         relative_differences <- abs((x - y) / ((x + y) / 2))
         vapply(relative_differences, `<`, logical(1), tolerance)
     }
-    if (any(not_close <- ! is_close(merged$r_actual, merged$r_expected))) {
+    p_actual <- paste0(pvalue_column, "_actual")
+    p_expected <- paste0(pvalue_column, "_expected")
+    if (any(not_close <- ! is_close(merged[[p_actual]], merged[[p_expected]]))) {
         first <- which.max(not_close)
-        fail(sprintf("actual and expected r-values differ, first at (%s, %s, %s) = (%s, %s, %s): %s vs %s",
+        fail(sprintf("actual and expected p-values differ, first at (%s, %s, %s) = (%s, %s, %s): %s vs %s",
             xyz$x, xyz$y, xyz$z, merged[[xyz$x]][first], merged[[xyz$y]][first],
-            merged[[xyz$z]][first], merged$r_actual[first], merged$r_expected[first]))
+            merged[[xyz$z]][first], merged[[p_actual]][first], merged[[p_expected]][first]))
         return()
     }
     succeed()
