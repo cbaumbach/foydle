@@ -14,7 +14,12 @@ static void print_header(FILE *fp, const char **colnames);
 static void print_rvalues(FILE *fp, double *rvalue, int n, int xcol, int ycol,
     double threshold, const char **xnames, const char **ynames, const char *zname,
     int swap_y_and_z);
-static int annotate_rvalues(double *rvalue, int n, double threshold, int *xindex, int *yindex, int *zindex, double *rvalues, int xcol, int zi, int swap_y_and_z, int offset);
+static int annotate_rvalues(double *rvalue, int n, double threshold,
+    int *xindex, int *yindex, int *zindex, double *rvalues, int xcol,
+    int zi, int swap_y_and_z, int offset);
+static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
+    SEXP xnames2, SEXP ynames2, SEXP znames2, double *rvalues, int offset,
+    const char **colnames);
 
 void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *, int *);
 void F77_NAME(center)(double *, int *, int *);
@@ -106,40 +111,13 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     if (filename)
         return R_NilValue;
 
-    int number_of_results = offset;
-    SEXP x = PROTECT(allocVector(STRSXP, number_of_results));
-    SEXP y = PROTECT(allocVector(STRSXP, number_of_results));
-    SEXP z = PROTECT(allocVector(STRSXP, number_of_results));
-    SEXP r = PROTECT(allocVector(REALSXP, number_of_results));
-    for (int i = 0; i < number_of_results; i++) {
-        SET_STRING_ELT(x, i, STRING_ELT(xnames2, xindex[i]));
-        SET_STRING_ELT(y, i, STRING_ELT(ynames2, yindex[i]));
-        SET_STRING_ELT(z, i, STRING_ELT(znames2, zindex[i]));
-        REAL(r)[i] = rvalues[i];
-    }
+    SEXP result = create_data_frame(xindex, yindex, zindex,
+        xnames2, ynames2, znames2, rvalues, offset, colnames);
+
     free(xindex);
     free(yindex);
     free(zindex);
     free(rvalues);
-    SEXP result = PROTECT(allocVector(VECSXP, 4));
-    SET_VECTOR_ELT(result, 0, x);
-    SET_VECTOR_ELT(result, 1, y);
-    SET_VECTOR_ELT(result, 2, z);
-    SET_VECTOR_ELT(result, 3, r);
-    SEXP class = PROTECT(allocVector(STRSXP, 1));
-    SET_STRING_ELT(class, 0, mkChar("data.frame"));
-    setAttrib(result, R_ClassSymbol, class);
-    SEXP names = PROTECT(allocVector(STRSXP, 4));
-    SET_STRING_ELT(names, 0, mkChar(colnames[0]));
-    SET_STRING_ELT(names, 1, mkChar(colnames[1]));
-    SET_STRING_ELT(names, 2, mkChar(colnames[2]));
-    SET_STRING_ELT(names, 3, mkChar("r"));
-    setAttrib(result, R_NamesSymbol, names);
-    SEXP rownames = PROTECT(allocVector(INTSXP, number_of_results));
-    for (int i = 0; i < number_of_results; i++)
-        INTEGER(rownames)[i] = i + 1;
-    setAttrib(result, R_RowNamesSymbol, rownames);
-    UNPROTECT(8);
 
     return result;
 }
@@ -176,5 +154,46 @@ static int annotate_rvalues(double *rvalue, int n, double threshold, int *xindex
             ++result;
         }
     }
+    return result;
+}
+
+static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
+    SEXP xnames2, SEXP ynames2, SEXP znames2, double *rvalues,
+    int nrow, const char **colnames)
+{
+    SEXP x = PROTECT(allocVector(STRSXP, nrow));
+    SEXP y = PROTECT(allocVector(STRSXP, nrow));
+    SEXP z = PROTECT(allocVector(STRSXP, nrow));
+    SEXP r = PROTECT(allocVector(REALSXP, nrow));
+    for (int i = 0; i < nrow; i++) {
+        SET_STRING_ELT(x, i, STRING_ELT(xnames2, xindex[i]));
+        SET_STRING_ELT(y, i, STRING_ELT(ynames2, yindex[i]));
+        SET_STRING_ELT(z, i, STRING_ELT(znames2, zindex[i]));
+        REAL(r)[i] = rvalues[i];
+    }
+
+    SEXP result = PROTECT(allocVector(VECSXP, 4));
+    SET_VECTOR_ELT(result, 0, x);
+    SET_VECTOR_ELT(result, 1, y);
+    SET_VECTOR_ELT(result, 2, z);
+    SET_VECTOR_ELT(result, 3, r);
+
+    SEXP class = PROTECT(allocVector(STRSXP, 1));
+    SET_STRING_ELT(class, 0, mkChar("data.frame"));
+    setAttrib(result, R_ClassSymbol, class);
+
+    SEXP names = PROTECT(allocVector(STRSXP, 4));
+    SET_STRING_ELT(names, 0, mkChar(colnames[0]));
+    SET_STRING_ELT(names, 1, mkChar(colnames[1]));
+    SET_STRING_ELT(names, 2, mkChar(colnames[2]));
+    SET_STRING_ELT(names, 3, mkChar("r"));
+    setAttrib(result, R_NamesSymbol, names);
+
+    SEXP rownames = PROTECT(allocVector(INTSXP, nrow));
+    for (int i = 0; i < nrow; i++)
+        INTEGER(rownames)[i] = i + 1;
+    setAttrib(result, R_RowNamesSymbol, rownames);
+
+    UNPROTECT(8);
     return result;
 }
