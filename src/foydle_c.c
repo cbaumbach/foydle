@@ -53,11 +53,11 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
         (output_file == R_NilValue) ? NULL : CHAR(asChar(output_file)),
         asReal(rvalue_threshold), asInteger(cores), swap_y_and_z);
 
-    UNPROTECT(3);
     free(xnames);
     free(ynames);
     free(znames);
 
+    UNPROTECT(3);
     return result;
 }
 
