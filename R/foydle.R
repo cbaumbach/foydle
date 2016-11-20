@@ -8,21 +8,23 @@
 #'
 #' @param xmat,ymat,zmat Numeric matrices
 #' @param output_file Path to output file
+#' @param with_return If FALSE, return NULL (default: TRUE)
 #' @param colnames Names for columns 1-3 in output table
 #' @param pvalue_threshold Save only results with p-value below
 #'     threshold (default: save all results)
 #' @param cores Number of CPU cores to use (default 1)
 #'
-#' @return A data frame with columns "x", "y", "z", and "r".  Columns
-#'     "x", "y", and "z" contain the names of the columns of
-#'     \code{xmat}, \code{ymat}, and \code{zmat} that were used in
-#'     computing the corresponding Pearson correlation coefficient in
-#'     the "r" column.  The names of columns other than the r-column
-#'     can be changed via the \code{colnames} argument.  The same data
-#'     frame is written to \code{output_file}.
+#' @return If \code{with_return} is \code{TRUE}, the function returns
+#'     a data frame with columns "x", "y", "z", and "r".  Columns "x",
+#'     "y", and "z" contain the names of the columns of \code{xmat},
+#'     \code{ymat}, and \code{zmat} that were used in computing the
+#'     corresponding Pearson correlation coefficient in the "r"
+#'     column.  The names of columns other than the r-column can be
+#'     changed via the \code{colnames} argument.  The same data frame
+#'     is written to \code{output_file} if specified.
 #'
 #' @export
-foydle <- function(xmat, ymat, zmat, output_file = NULL,
+foydle <- function(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
     colnames = c("x", "y", "z"), pvalue_threshold = NULL, cores = 1)
 {
     if (is.null(pvalue_threshold))
@@ -33,6 +35,8 @@ foydle <- function(xmat, ymat, zmat, output_file = NULL,
     result <- .Call("compute_and_save_rvalues", xmat, ymat, zmat, nrow(xmat),
         output_file, colnames, rvalue_threshold, as.integer(cores),
         PACKAGE = "foydle")
+    if (!with_return)
+        return(invisible(NULL))
     if (is.null(output_file))
         return(result)
     read.delim(output_file, as.is = TRUE)

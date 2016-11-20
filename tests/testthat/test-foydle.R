@@ -33,6 +33,14 @@ test_that("we can use multiple cores", {
     expect_same_contents(actual, foydle_lm(mat$x, mat$y, mat$z))
 })
 
+test_that("we can suppress the return value", {
+    mat <- create_data()
+    expect_null(foydle(mat$x, mat$y, mat$z, "data/out.txt", with_return = FALSE))
+    actual <- read.delim("data/out.txt", as.is = TRUE)
+    expected <- foydle_lm(mat$x, mat$y, mat$z)
+    expect_same_contents(actual, expected)
+})
+
 context("conversions")
 
 test_that("p2t finds the (1 - p/2)th quantile of a t-distribution", {

@@ -4,13 +4,15 @@
 \alias{foydle}
 \title{Fast Pearson Correlation For Linear Regression Interaction Term}
 \usage{
-foydle(xmat, ymat, zmat, output_file = NULL, colnames = c("x", "y", "z"),
-  pvalue_threshold = NULL, cores = 1)
+foydle(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
+  colnames = c("x", "y", "z"), pvalue_threshold = NULL, cores = 1)
 }
 \arguments{
 \item{xmat, ymat, zmat}{Numeric matrices}
 
 \item{output_file}{Path to output file}
+
+\item{with_return}{If FALSE, return NULL (default: TRUE)}
 
 \item{colnames}{Names for columns 1-3 in output table}
 
@@ -20,13 +22,14 @@ threshold (default: save all results)}
 \item{cores}{Number of CPU cores to use (default 1)}
 }
 \value{
-A data frame with columns "x", "y", "z", and "r".  Columns
-    "x", "y", and "z" contain the names of the columns of
-    \code{xmat}, \code{ymat}, and \code{zmat} that were used in
-    computing the corresponding Pearson correlation coefficient in
-    the "r" column.  The names of columns other than the r-column
-    can be changed via the \code{colnames} argument.  The same data
-    frame is written to \code{output_file}.
+If \code{with_return} is \code{TRUE}, the function returns
+    a data frame with columns "x", "y", "z", and "r".  Columns "x",
+    "y", and "z" contain the names of the columns of \code{xmat},
+    \code{ymat}, and \code{zmat} that were used in computing the
+    corresponding Pearson correlation coefficient in the "r"
+    column.  The names of columns other than the r-column can be
+    changed via the \code{colnames} argument.  The same data frame
+    is written to \code{output_file} if specified.
 }
 \description{
 \code{foydle} computes Pearson correlation coefficients for the
