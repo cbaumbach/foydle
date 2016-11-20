@@ -3,7 +3,7 @@ library(microbenchmark)
 mat <- create_data(x = 20, y = 50, z = 100)
 
 (data <- round(summary(microbenchmark(
-    foydle(mat$x, mat$y, mat$z, "out.txt")))[-1]))
+    foydle(mat$x, mat$y, mat$z, threshold = .05 / 20 / 50 / 100)))[-1]))
 
 # min  lq mean median  uq max neval  comment
 # 130 131  134    135 137 138   100  without optimization
@@ -16,3 +16,8 @@ mat <- create_data(x = 20, y = 50, z = 100)
 #  70  70   71     71  72  76   100  compile FORTRAN code with -O3 instead of -O2
 #  69  70   70     70  70  74   100  also compile C code with -O3 instead of -O2
 # ---------------------------------------------------------------------------------
+# 150 151  155    152 154 274   100  with output file and return value
+#  91  92   94     92  93 211   100  without output file
+# 134 134  135    134 135 144   100  with output file and without return value
+#  22  23   23     23  23  24   100  without output file and threshold .05
+#  17  17   17     17  17  18   100  without output file and threshold .05 / 20 / 50 / 100
