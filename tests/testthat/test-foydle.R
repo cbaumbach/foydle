@@ -11,7 +11,7 @@ test_that("happy path", {
 
 test_that("we can specify the (column) names of the result table", {
     mat <- create_data()
-    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", names = c("a", "b", "c", "p"))
+    actual <- foydle(mat$x, mat$y, mat$z, names = c("a", "b", "c", "p"))
     expected <- foydle_lm(mat$x, mat$y, mat$z)
     names(expected) <- c("a", "b", "c", "p")
     expect_same_contents(actual, expected)
@@ -19,7 +19,7 @@ test_that("we can specify the (column) names of the result table", {
 
 test_that("we can restrict result to those with p-values below a given threshold", {
     mat <- create_data()
-    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", threshold = .7)
+    actual <- foydle(mat$x, mat$y, mat$z, threshold = .7)
     d <- foydle_lm(mat$x, mat$y, mat$z)
     expected <- d[d$pvalue <= .7, ]
     rownames(expected) <- NULL
@@ -28,11 +28,11 @@ test_that("we can restrict result to those with p-values below a given threshold
 
 test_that("we can use multiple cores", {
     mat <- create_data()
-    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", cores = 2)
+    actual <- foydle(mat$x, mat$y, mat$z, cores = 2)
     expect_same_contents(actual, foydle_lm(mat$x, mat$y, mat$z))
 })
 
-test_that("we can suppress the return value", {
+test_that("if we specify an output file, we can suppress the return value", {
     mat <- create_data()
     expect_null(foydle(mat$x, mat$y, mat$z, "data/out.txt", with_return = FALSE))
     actual <- read.delim("data/out.txt", as.is = TRUE)
