@@ -6,7 +6,7 @@
 
 static int annotate_rvalues(double *rvalue, int n, double threshold,
     const char **xnames, const char **ynames, const char **znames,
-    const char **x, const char **y, const char **z, double *rvalues,
+    const char **x, const char **y, const char **z, double *r,
     int xcol, int zi, int swap_y_and_z, int offset);
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int n, const char **xnames,
@@ -14,11 +14,11 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     const char *filename, double rvalue_threshold, int cores,
     int with_return, int swap_y_and_z);
 static SEXP create_data_frame(const char **x, const char **y,
-    const char **z, double *rvalues, int offset, SEXP names);
+    const char **z, double *r, int offset, SEXP names);
 static const char **extract_colnames(SEXP mat);
 static void print_header(FILE *fp, SEXP names);
 static void print_rvalues(FILE *fp, const char **x, const char **y,
-    const char **z, double *rvalues, int offset, int nsignif);
+    const char **z, double *r, int offset, int nsignif);
 
 void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *, int *);
 void F77_NAME(center)(double *, int *, int *);
@@ -67,13 +67,13 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int with_return, int swap_y_and_z)
 {
     const char **x, **y, **z;
-    double *rvalues;
+    double *r;
 
     int nelem = with_return ? xcol * ycol * zcol : xcol * ycol;
     x = malloc(nelem * sizeof(*x));
     y = malloc(nelem * sizeof(*y));
     z = malloc(nelem * sizeof(*z));
-    rvalues = malloc(nelem * sizeof(*rvalues));
+    r = malloc(nelem * sizeof(*r));
 
     F77_CALL(center)(xmat, &n, &xcol);
     F77_CALL(center)(ymat, &n, &ycol);
@@ -89,9 +89,9 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     for (int i = 0; i < zcol; i++) {
         F77_CALL(rval)(xmat, ymat, zmat + i * n, &xcol, &ycol, &n, rvalue, &cores);
         int nsignif = annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
-            xnames, ynames, znames, x, y, z, rvalues, xcol, i, swap_y_and_z, offset);
+            xnames, ynames, znames, x, y, z, r, xcol, i, swap_y_and_z, offset);
         if (filename)
-            print_rvalues(fp, x, y, z, rvalues, offset, nsignif);
+            print_rvalues(fp, x, y, z, r, offset, nsignif);
         if (with_return)
             offset += nsignif;
     }
@@ -101,14 +101,14 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
 
     SEXP result;
     if (with_return)
-        result = create_data_frame(x, y, z, rvalues, offset, names);
+        result = create_data_frame(x, y, z, r, offset, names);
     else
         result = R_NilValue;
 
     free(x);
     free(y);
     free(z);
-    free(rvalues);
+    free(r);
 
     return result;
 }
@@ -122,15 +122,15 @@ static void print_header(FILE *fp, SEXP names) {
 }
 
 static void print_rvalues(FILE *fp, const char **x, const char **y,
-    const char **z, double *rvalues, int offset, int nsignif)
+    const char **z, double *r, int offset, int nsignif)
 {
     for (int i = offset; i < offset + nsignif; i++)
-        fprintf(fp, "%s\t%s\t%s\t%.9f\n", x[i], y[i], z[i], rvalues[i]);
+        fprintf(fp, "%s\t%s\t%s\t%.9f\n", x[i], y[i], z[i], r[i]);
 }
 
 static int annotate_rvalues(double *rvalue, int n, double threshold,
     const char **xnames, const char **ynames, const char **znames,
-    const char **x, const char **y, const char **z, double *rvalues,
+    const char **x, const char **y, const char **z, double *r,
     int xcol, int zi, int swap_y_and_z, int offset)
 {
     int no_threshold = !R_FINITE(threshold);
@@ -140,7 +140,7 @@ static int annotate_rvalues(double *rvalue, int n, double threshold,
             x[offset] = xnames[i % xcol];
             y[offset] = ynames[swap_y_and_z ? zi : i / xcol];
             z[offset] = znames[swap_y_and_z ? i / xcol : zi];
-            rvalues[offset] = rvalue[i];
+            r[offset] = rvalue[i];
             ++offset;
         }
     }
@@ -148,7 +148,7 @@ static int annotate_rvalues(double *rvalue, int n, double threshold,
 }
 
 static SEXP create_data_frame(const char **x_, const char **y_,
-    const char **z_, double *rvalues, int nrow, SEXP names_)
+    const char **z_, double *r_, int nrow, SEXP names_)
 {
     SEXP x = PROTECT(allocVector(STRSXP, nrow));
     SEXP y = PROTECT(allocVector(STRSXP, nrow));
@@ -158,7 +158,7 @@ static SEXP create_data_frame(const char **x_, const char **y_,
         SET_STRING_ELT(x, i, mkChar(x_[i]));
         SET_STRING_ELT(y, i, mkChar(y_[i]));
         SET_STRING_ELT(z, i, mkChar(z_[i]));
-        REAL(r)[i] = rvalues[i];
+        REAL(r)[i] = r_[i];
     }
 
     SEXP result = PROTECT(allocVector(VECSXP, 4));
