@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <math.h>
 
-static int annotate_rvalues(double *rvalue, int n, double threshold,
+static int filter_and_annotate_rvalues(double *rvalue, int n, double threshold,
     const char **xnames, const char **ynames, const char **znames,
     const char **x, const char **y, const char **z, double *r,
     int xcol, int zi, int swap_y_and_z, int initial_offset);
@@ -86,7 +86,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     }
     for (int i = 0; i < zcol; i++) {
         F77_CALL(rval)(xmat, ymat, zmat + i * n, &xcol, &ycol, &n, rvalue, &cores);
-        int nsignif = annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
+        int nsignif = filter_and_annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
             xnames, ynames, znames, x, y, z, r, xcol, i, swap_y_and_z, offset);
         if (filename)
             print_rvalues(fp, x, y, z, r, offset, nsignif);
@@ -126,7 +126,7 @@ static void print_rvalues(FILE *fp, const char **x, const char **y,
         fprintf(fp, "%s\t%s\t%s\t%.9f\n", x[i], y[i], z[i], r[i]);
 }
 
-static int annotate_rvalues(double *rvalue, int n, double threshold,
+static int filter_and_annotate_rvalues(double *rvalue, int n, double threshold,
     const char **xnames, const char **ynames, const char **znames,
     const char **x, const char **y, const char **z, double *r,
     int xcol, int zi, int swap_y_and_z, int initial_offset)
