@@ -90,27 +90,23 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     for (int i = 0; i < zcol; i++) {
         F77_CALL(rval)(xmat, ymat, zmat + i * n, &xcol, &ycol, &n, rvalue, &cores);
         int nsignif = annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
-            xindex, yindex, zindex, rvalues, xcol, i, swap_y_and_z,
-            with_return ? offset : 0);
+            xindex, yindex, zindex, rvalues, xcol, i, swap_y_and_z, offset);
         if (filename)
             print_rvalues(fp, xindex, yindex, zindex, xnames, ynames, znames,
-                rvalues, with_return ? offset : 0, nsignif);
-        offset += nsignif;
+                rvalues, offset, nsignif);
+        if (with_return)
+            offset += nsignif;
     }
     if (filename)
         fclose(fp);
     free(rvalue);
 
-    if (!with_return) {
-        free(xindex);
-        free(yindex);
-        free(zindex);
-        free(rvalues);
-        return R_NilValue;
-    }
-
-    SEXP result = create_data_frame(xindex, yindex, zindex,
-        xnames, ynames, znames, rvalues, offset, names);
+    SEXP result;
+    if (with_return)
+        result = create_data_frame(xindex, yindex, zindex,
+            xnames, ynames, znames, rvalues, offset, names);
+    else
+        result = R_NilValue;
 
     free(xindex);
     free(yindex);
