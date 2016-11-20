@@ -122,10 +122,11 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
 }
 
 static void print_header(FILE *fp, SEXP colnames) {
-    fprintf(fp, "%s\t%s\t%s\tr\n",
+    fprintf(fp, "%s\t%s\t%s\t%s\n",
         CHAR(STRING_ELT(colnames, 0)),
         CHAR(STRING_ELT(colnames, 1)),
-        CHAR(STRING_ELT(colnames, 2)));
+        CHAR(STRING_ELT(colnames, 2)),
+        CHAR(STRING_ELT(colnames, 3)));
 }
 
 static void print_rvalues(FILE *fp, int *xindex, int *yindex, int *zindex,
@@ -184,11 +185,7 @@ static SEXP create_data_frame(int *xindex, int *yindex, int *zindex,
     SET_STRING_ELT(class, 0, mkChar("data.frame"));
     setAttrib(result, R_ClassSymbol, class);
 
-    SEXP names = PROTECT(allocVector(STRSXP, 4));
-    SET_STRING_ELT(names, 0, STRING_ELT(colnames, 0));
-    SET_STRING_ELT(names, 1, STRING_ELT(colnames, 1));
-    SET_STRING_ELT(names, 2, STRING_ELT(colnames, 2));
-    SET_STRING_ELT(names, 3, mkChar("r"));
+    SEXP names = PROTECT(duplicate(colnames));
     setAttrib(result, R_NamesSymbol, names);
 
     SEXP rownames = PROTECT(allocVector(INTSXP, nrow));
