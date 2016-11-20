@@ -1,5 +1,6 @@
 #include <R.h>
 #include <Rinternals.h>
+#include <R_ext/Utils.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -92,6 +93,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
             print_rvalues(fp, x, y, z, r, offset, nsignif);
         if (with_return)
             offset += nsignif;
+        R_CheckUserInterrupt();
     }
     if (filename)
         fclose(fp);
