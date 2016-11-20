@@ -5,7 +5,7 @@
 \title{Fast Pearson Correlation For Linear Regression Interaction Term}
 \usage{
 foydle(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
-  colnames = c("x", "y", "z"), pvalue_threshold = NULL, cores = 1)
+  names = c("x", "y", "z", "r"), pvalue_threshold = NULL, cores = 1)
 }
 \arguments{
 \item{xmat, ymat, zmat}{Numeric matrices}
@@ -14,7 +14,7 @@ foydle(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
 
 \item{with_return}{If FALSE, return NULL (default: TRUE)}
 
-\item{colnames}{Names for columns 1-3 in output table}
+\item{names}{Names for columns in output table}
 
 \item{pvalue_threshold}{Save only results with p-value below
 threshold (default: save all results)}

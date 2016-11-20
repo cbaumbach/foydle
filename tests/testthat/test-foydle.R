@@ -9,11 +9,11 @@ test_that("happy path", {
     expect_same_contents(actual, expected)
 })
 
-test_that("we can specify the column names for the result table", {
+test_that("we can specify the (column) names of the result table", {
     mat <- create_data()
-    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", colnames = c("a", "b", "c"))
+    actual <- foydle(mat$x, mat$y, mat$z, "data/out.txt", names = c("a", "b", "c", "r-value"))
     expected <- foydle_lm(mat$x, mat$y, mat$z)
-    names(expected) <- c("a", "b", "c", "r")
+    names(expected) <- c("a", "b", "c", "r-value")
     expect_same_contents(actual, expected)
 })
 

@@ -9,7 +9,7 @@
 #' @param xmat,ymat,zmat Numeric matrices
 #' @param output_file Path to output file
 #' @param with_return If FALSE, return NULL (default: TRUE)
-#' @param colnames Names for columns 1-3 in output table
+#' @param names Names for columns in output table
 #' @param pvalue_threshold Save only results with p-value below
 #'     threshold (default: save all results)
 #' @param cores Number of CPU cores to use (default 1)
@@ -25,7 +25,7 @@
 #'
 #' @export
 foydle <- function(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
-    colnames = c("x", "y", "z"), pvalue_threshold = NULL, cores = 1)
+    names = c("x", "y", "z", "r"), pvalue_threshold = NULL, cores = 1)
 {
     if (is.null(pvalue_threshold))
         rvalue_threshold <- Inf
@@ -33,7 +33,7 @@ foydle <- function(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
         rvalue_threshold <- p2r(pvalue_threshold, df = nrow(xmat) - 4)
     storage.mode(xmat) <- storage.mode(ymat) <- storage.mode(zmat) <- "double"
     .Call("compute_and_save_rvalues", xmat, ymat, zmat, nrow(xmat),
-        output_file, c(colnames, "r"), rvalue_threshold, as.integer(cores),
+        output_file, names, rvalue_threshold, as.integer(cores),
         as.logical(with_return), PACKAGE = "foydle")
 }
 

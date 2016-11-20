@@ -2,6 +2,7 @@ unlink("data", recursive = TRUE, force = TRUE)
 dir.create("data", showWarnings = FALSE)
 
 expect_same_contents <- function(actual, expected) {
+    rvalue_column <- names(expected)[ncol(expected)]
     if (nrow(actual) != nrow(expected)) {
         fail(sprintf("nrow(actual) != nrow(expected): %d vs %d",
             nrow(actual), nrow(expected)))
@@ -22,7 +23,7 @@ expect_same_contents <- function(actual, expected) {
             paste(duplicated_columns, collapse = ", ")))
         return()
     }
-    merge_columns <- setdiff(names(expected), "r")
+    merge_columns <- setdiff(names(expected), rvalue_column)
     xyz <- setNames(as.list(names(actual)[1:3]), c("x", "y", "z"))
     combine <- function(columns) {
         do.call(function(...) paste(..., sep = "\r"), columns)
