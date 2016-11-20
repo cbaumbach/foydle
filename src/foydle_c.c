@@ -9,7 +9,7 @@ static int filter_and_annotate_rvalues(double *rvalue, int n, double threshold,
     const char **x, const char **y, const char **z, double *r,
     int xcol, int zi, int swap_y_and_z, int initial_offset);
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
-    int xcol, int ycol, int zcol, int n, const char **xnames,
+    int xcol, int ycol, int zcol, int nrow, const char **xnames,
     const char **ynames, const char **znames, SEXP names,
     const char *filename, double rvalue_threshold, int cores,
     int with_return, int swap_y_and_z);
@@ -23,7 +23,7 @@ static void print_rvalues(FILE *fp, const char **x, const char **y,
 void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
 void F77_NAME(center)(double *matrix, int *nrow, int *ncol);
 
-SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
+SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP nrow,
     SEXP output_file_, SEXP names, SEXP rvalue_threshold, SEXP cores,
     SEXP with_return)
 {
@@ -39,7 +39,7 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
     const char *output_file = (output_file_ == R_NilValue) ? NULL : CHAR(asChar(output_file_));
 
     SEXP result = compute_and_save(REAL(xmat), REAL(ymat), REAL(zmat),
-        ncols(xmat), ncols(ymat), ncols(zmat), asInteger(n), xnames,
+        ncols(xmat), ncols(ymat), ncols(zmat), asInteger(nrow), xnames,
         ynames, znames, names, output_file, asReal(rvalue_threshold),
         asInteger(cores), asInteger(with_return), swap_y_and_z);
 
@@ -61,14 +61,14 @@ static const char **extract_colnames(SEXP mat) {
 }
 
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
-    int xcol, int ycol, int zcol, int n, const char **xnames,
+    int xcol, int ycol, int zcol, int nrow, const char **xnames,
     const char **ynames, const char **znames, SEXP names,
     const char *filename, double rvalue_threshold, int cores,
     int with_return, int swap_y_and_z)
 {
-    F77_CALL(center)(xmat, &n, &xcol);
-    F77_CALL(center)(ymat, &n, &ycol);
-    F77_CALL(center)(zmat, &n, &zcol);
+    F77_CALL(center)(xmat, &nrow, &xcol);
+    F77_CALL(center)(ymat, &nrow, &ycol);
+    F77_CALL(center)(zmat, &nrow, &zcol);
 
     int nelem = with_return ? xcol * ycol * zcol : xcol * ycol;
     const char **x = malloc(nelem * sizeof(*x));
@@ -85,7 +85,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
         print_header(fp, names);
     }
     for (int i = 0; i < zcol; i++) {
-        F77_CALL(rval)(xmat, ymat, zmat + i * n, &xcol, &ycol, &n, rvalue, &cores);
+        F77_CALL(rval)(xmat, ymat, zmat + i * nrow, &xcol, &ycol, &nrow, rvalue, &cores);
         int nsignif = filter_and_annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
             xnames, ynames, znames, x, y, z, r, xcol, i, swap_y_and_z, offset);
         if (filename)
