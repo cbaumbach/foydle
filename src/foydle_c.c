@@ -25,7 +25,7 @@ void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *,
 void F77_NAME(center)(double *, int *, int *);
 
 SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
-    SEXP output_file, SEXP colnames, SEXP rvalue_threshold, SEXP cores,
+    SEXP output_file_, SEXP colnames, SEXP rvalue_threshold, SEXP cores,
     SEXP with_return)
 {
     int swap_y_and_z = ncols(zmat_) > ncols(ymat_);
@@ -37,11 +37,11 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
     const char **ynames = extract_colnames(ymat_);
     const char **znames = extract_colnames(zmat_);
 
+    const char *output_file = (output_file_ == R_NilValue) ? NULL : CHAR(asChar(output_file_));
 
     SEXP result = compute_and_save(REAL(xmat), REAL(ymat), REAL(zmat),
         ncols(xmat), ncols(ymat), ncols(zmat), asInteger(n),
-        xnames, ynames, znames, colnames,
-        (output_file == R_NilValue) ? NULL : CHAR(asChar(output_file)),
+        xnames, ynames, znames, colnames, output_file,
         asReal(rvalue_threshold), asInteger(cores), asInteger(with_return),
         swap_y_and_z);
 
