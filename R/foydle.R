@@ -32,14 +32,9 @@ foydle <- function(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
     else
         rvalue_threshold <- p2r(pvalue_threshold, df = nrow(xmat) - 4)
     storage.mode(xmat) <- storage.mode(ymat) <- storage.mode(zmat) <- "double"
-    result <- .Call("compute_and_save_rvalues", xmat, ymat, zmat, nrow(xmat),
+    .Call("compute_and_save_rvalues", xmat, ymat, zmat, nrow(xmat),
         output_file, colnames, rvalue_threshold, as.integer(cores),
-        PACKAGE = "foydle")
-    if (!with_return)
-        return(invisible(NULL))
-    if (is.null(output_file))
-        return(result)
-    read.delim(output_file, as.is = TRUE)
+        as.logical(with_return), PACKAGE = "foydle")
 }
 
 foydle_lm <- function(xmat, ymat, zmat) {
