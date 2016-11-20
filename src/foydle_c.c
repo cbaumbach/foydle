@@ -80,7 +80,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int *xindex = NULL, *yindex = NULL, *zindex = NULL;
     double *rvalues = NULL;
 
-    int nelem = xcol * ycol * zcol;
+    int nelem = with_return ? xcol * ycol * zcol : xcol * ycol;
     xindex = malloc(nelem * sizeof(*xindex));
     yindex = malloc(nelem * sizeof(*yindex));
     zindex = malloc(nelem * sizeof(*zindex));
@@ -99,9 +99,12 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int offset = 0;
     for (int i = 0; i < zcol; i++) {
         F77_CALL(rval)(xmat, ymat, zmat + i * n, &xcol, &ycol, &n, rvalue, &cores);
-        int nsignif = annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold, xindex, yindex, zindex, rvalues, xcol, i, swap_y_and_z, offset);
+        int nsignif = annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
+            xindex, yindex, zindex, rvalues, xcol, i, swap_y_and_z,
+            with_return ? offset : 0);
         if (filename)
-            print_rvalues(fp, xindex, yindex, zindex, xnames2, ynames2, znames2, rvalues, offset, nsignif);
+            print_rvalues(fp, xindex, yindex, zindex, xnames2, ynames2, znames2,
+                rvalues, with_return ? offset : 0, nsignif);
         offset += nsignif;
     }
     if (filename)
