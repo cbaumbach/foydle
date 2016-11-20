@@ -74,13 +74,23 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     F77_CALL(center)(ymat, &nrow, &ycol);
     F77_CALL(center)(zmat, &nrow, &zcol);
 
-    int nelem = with_return ? xcol * ycol * zcol : xcol * ycol;
-    const char **x = storage->x = Calloc(nelem, const char *);
-    const char **y = storage->y = Calloc(nelem, const char *);
-    const char **z = storage->z = Calloc(nelem, const char *);
-    double *r = storage->r = Calloc(nelem, double);
+    int minimum_capacity = xcol * ycol;
+    int full_capacity = xcol * ycol * zcol;
+    int capacity;
+    int no_threshold = !R_FINITE(rvalue_threshold);
+    if (with_return && no_threshold)
+        capacity = full_capacity;
+    else if (with_return)
+        capacity = 2 * minimum_capacity;
+    else
+        capacity = minimum_capacity;
+
+    const char **x = storage->x = Calloc(capacity, const char *);
+    const char **y = storage->y = Calloc(capacity, const char *);
+    const char **z = storage->z = Calloc(capacity, const char *);
+    double *r = storage->r = Calloc(capacity, double);
     int offset = 0;             // index of next element in x, y, z, r
-    double *rvalue = storage->rvalue = Calloc(xcol * ycol, double);
+    double *rvalue = storage->rvalue = Calloc(minimum_capacity, double);
 
     FILE *fp = NULL;
     if (filename) {
@@ -88,6 +98,14 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
         print_header(fp, names);
     }
     for (int i = 0; i < zcol; i++) {
+        int required_capacity = offset + minimum_capacity;
+        while (capacity < required_capacity) {
+            x = storage->x = Realloc(x, capacity + minimum_capacity, const char *);
+            y = storage->y = Realloc(y, capacity + minimum_capacity, const char *);
+            z = storage->z = Realloc(z, capacity + minimum_capacity, const char *);
+            r = storage->r = Realloc(r, capacity + minimum_capacity, double);
+            capacity += minimum_capacity;
+        }
         F77_CALL(rval)(xmat, ymat, zmat + i * nrow, &xcol, &ycol, &nrow, rvalue, &cores);
         int nsignif = filter_and_annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
             xnames, ynames, znames, x, y, z, r, xcol, i, swap_y_and_z, offset);
