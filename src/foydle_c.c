@@ -23,7 +23,7 @@ static void print_rvalues(FILE *fp, const char **x, const char **y,
 void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
 void F77_NAME(center)(double *matrix, int *nrow, int *ncol);
 
-SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP nrow,
+SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
     SEXP output_file_, SEXP names, SEXP rvalue_threshold, SEXP cores,
     SEXP with_return)
 {
@@ -39,7 +39,7 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP nrow,
     const char *output_file = (output_file_ == R_NilValue) ? NULL : CHAR(asChar(output_file_));
 
     SEXP result = compute_and_save(REAL(xmat), REAL(ymat), REAL(zmat),
-        ncols(xmat), ncols(ymat), ncols(zmat), asInteger(nrow), xnames,
+        ncols(xmat), ncols(ymat), ncols(zmat), nrows(xmat), xnames,
         ynames, znames, names, output_file, asReal(rvalue_threshold),
         asInteger(cores), asInteger(with_return), swap_y_and_z);
 
