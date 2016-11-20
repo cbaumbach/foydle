@@ -66,26 +66,24 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     const char *filename, double rvalue_threshold, int cores,
     int with_return, int swap_y_and_z)
 {
-    const char **x, **y, **z;
-    double *r;
-
-    int nelem = with_return ? xcol * ycol * zcol : xcol * ycol;
-    x = malloc(nelem * sizeof(*x));
-    y = malloc(nelem * sizeof(*y));
-    z = malloc(nelem * sizeof(*z));
-    r = malloc(nelem * sizeof(*r));
-
     F77_CALL(center)(xmat, &n, &xcol);
     F77_CALL(center)(ymat, &n, &ycol);
     F77_CALL(center)(zmat, &n, &zcol);
+
+    int nelem = with_return ? xcol * ycol * zcol : xcol * ycol;
+    const char **x = malloc(nelem * sizeof(*x));
+    const char **y = malloc(nelem * sizeof(*y));
+    const char **z = malloc(nelem * sizeof(*z));
+    double      *r = malloc(nelem * sizeof(*r));
+    int offset = 0;             // index of next element in x, y, z, r
+
+    double *rvalue = malloc(xcol * ycol * sizeof(*rvalue));
 
     FILE *fp = NULL;
     if (filename) {
         fp = fopen(filename, "wb");
         print_header(fp, names);
     }
-    double *rvalue = malloc(xcol * ycol * sizeof(*rvalue));
-    int offset = 0;
     for (int i = 0; i < zcol; i++) {
         F77_CALL(rval)(xmat, ymat, zmat + i * n, &xcol, &ycol, &n, rvalue, &cores);
         int nsignif = annotate_rvalues(rvalue, xcol * ycol, rvalue_threshold,
@@ -97,7 +95,6 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     }
     if (filename)
         fclose(fp);
-    free(rvalue);
 
     SEXP result;
     if (with_return)
@@ -109,6 +106,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     free(y);
     free(z);
     free(r);
+    free(rvalue);
 
     return result;
 }
