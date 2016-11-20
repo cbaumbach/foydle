@@ -20,8 +20,8 @@ static void print_header(FILE *fp, SEXP names);
 static void print_rvalues(FILE *fp, const char **x, const char **y,
     const char **z, double *r, int offset, int nsignif);
 
-void F77_NAME(rval)(double *, double *, double *, int *, int *, int *, double *, int *);
-void F77_NAME(center)(double *, int *, int *);
+void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
+void F77_NAME(center)(double *matrix, int *nrow, int *ncol);
 
 SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_, SEXP n,
     SEXP output_file_, SEXP names, SEXP rvalue_threshold, SEXP cores,
