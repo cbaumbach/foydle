@@ -7,7 +7,7 @@
 static int annotate_rvalues(double *rvalue, int n, double threshold,
     const char **xnames, const char **ynames, const char **znames,
     const char **x, const char **y, const char **z, double *r,
-    int xcol, int zi, int swap_y_and_z, int offset);
+    int xcol, int zi, int swap_y_and_z, int initial_offset);
 static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
     int xcol, int ycol, int zcol, int n, const char **xnames,
     const char **ynames, const char **znames, SEXP names,
@@ -129,10 +129,10 @@ static void print_rvalues(FILE *fp, const char **x, const char **y,
 static int annotate_rvalues(double *rvalue, int n, double threshold,
     const char **xnames, const char **ynames, const char **znames,
     const char **x, const char **y, const char **z, double *r,
-    int xcol, int zi, int swap_y_and_z, int offset)
+    int xcol, int zi, int swap_y_and_z, int initial_offset)
 {
     int no_threshold = !R_FINITE(threshold);
-    int initial_offset = offset;
+    int offset = initial_offset;
     for (int i = 0; i < n; i++) {
         if (no_threshold || fabs(rvalue[i]) >= threshold) {
             x[offset] = xnames[i % xcol];
