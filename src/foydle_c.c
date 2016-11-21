@@ -25,7 +25,7 @@ static int filter_and_convert_rvalues(double *rvalue, int n, double threshold,
     const char **x, const char **y, const char **z, double *pvalue,
     int xcol, int zi, int swap_y_and_z, int initial_offset, int nrow);
 static void print_header(FILE *fp, SEXP names);
-static void print_rvalues(FILE *fp, const char **x, const char **y,
+static void print_pvalues(FILE *fp, const char **x, const char **y,
     const char **z, double *pvalue, int offset, int nsignif);
 static double r2p(double r, int df);
 
@@ -112,7 +112,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
         int nsignif = filter_and_convert_rvalues(rvalue, xcol * ycol, rvalue_threshold,
             xnames, ynames, znames, x, y, z, pvalue, xcol, i, swap_y_and_z, offset, nrow);
         if (filename && nsignif > 0)
-            print_rvalues(fp, x, y, z, pvalue, offset, nsignif);
+            print_pvalues(fp, x, y, z, pvalue, offset, nsignif);
         if (with_return)
             offset += nsignif;
         R_CheckUserInterrupt();
@@ -131,7 +131,7 @@ static void print_header(FILE *fp, SEXP names) {
         CHAR(STRING_ELT(names, 3)));
 }
 
-static void print_rvalues(FILE *fp, const char **x, const char **y,
+static void print_pvalues(FILE *fp, const char **x, const char **y,
     const char **z, double *pvalue, int offset, int nsignif)
 {
     for (int i = offset; i < offset + nsignif; i++)
