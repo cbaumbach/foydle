@@ -111,7 +111,7 @@ static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
         F77_CALL(rval)(xmat, ymat, zmat + i * nrow, &xcol, &ycol, &nrow, rvalue, &cores);
         int nsignif = filter_and_convert_rvalues(rvalue, xcol * ycol, rvalue_threshold,
             xnames, ynames, znames, x, y, z, pvalue, xcol, i, swap_y_and_z, offset, nrow);
-        if (filename)
+        if (filename && nsignif > 0)
             print_rvalues(fp, x, y, z, pvalue, offset, nsignif);
         if (with_return)
             offset += nsignif;
