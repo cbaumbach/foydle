@@ -35,23 +35,23 @@ static double r2p(double r, int df);
 void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
 void F77_NAME(center)(double *matrix, int *nrow, int *ncol);
 
-SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
-    SEXP output_file_, SEXP names, SEXP rvalue_threshold, SEXP cores,
+SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
+    SEXP output_file, SEXP names, SEXP rvalue_threshold, SEXP cores,
     SEXP with_return, SEXP storage_)
 {
     struct ArgumentsStruct args;
-    args.swap_y_and_z = ncols(zmat_) > ncols(ymat_);
-    args.xmat = REAL(PROTECT(duplicate(xmat_)));
-    args.ymat = REAL(PROTECT(duplicate(args.swap_y_and_z ? zmat_ : ymat_)));
-    args.zmat = REAL(PROTECT(duplicate(args.swap_y_and_z ? ymat_ : zmat_)));
-    args.xnames = VECTOR_ELT(getAttrib(xmat_, R_DimNamesSymbol), 1);
-    args.ynames = VECTOR_ELT(getAttrib(ymat_, R_DimNamesSymbol), 1);
-    args.znames = VECTOR_ELT(getAttrib(zmat_, R_DimNamesSymbol), 1);
-    args.xcol = ncols(xmat_);
-    args.ycol = ncols(args.swap_y_and_z ? zmat_ : ymat_);
-    args.zcol = ncols(args.swap_y_and_z ? ymat_ : zmat_);
-    args.nrow = nrows(xmat_);
-    args.filename = (output_file_ == R_NilValue) ? NULL : CHAR(asChar(output_file_));
+    args.swap_y_and_z = ncols(zmat) > ncols(ymat);
+    args.xmat = REAL(PROTECT(duplicate(xmat)));
+    args.ymat = REAL(PROTECT(duplicate(args.swap_y_and_z ? zmat : ymat)));
+    args.zmat = REAL(PROTECT(duplicate(args.swap_y_and_z ? ymat : zmat)));
+    args.xnames = VECTOR_ELT(getAttrib(xmat, R_DimNamesSymbol), 1);
+    args.ynames = VECTOR_ELT(getAttrib(ymat, R_DimNamesSymbol), 1);
+    args.znames = VECTOR_ELT(getAttrib(zmat, R_DimNamesSymbol), 1);
+    args.xcol = ncols(xmat);
+    args.ycol = ncols(args.swap_y_and_z ? zmat : ymat);
+    args.zcol = ncols(args.swap_y_and_z ? ymat : zmat);
+    args.nrow = nrows(xmat);
+    args.filename = (output_file == R_NilValue) ? NULL : CHAR(asChar(output_file));
     args.rvalue_threshold = asReal(rvalue_threshold);
     args.with_return = asInteger(with_return);
     args.cores = asInteger(cores);
