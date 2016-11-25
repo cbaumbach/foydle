@@ -13,10 +13,16 @@ typedef struct StorageStruct {
     int capacity, minimum_capacity;
 } *Storage;
 
-static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
-    int xcol, int ycol, int zcol, int nrow, SEXP names,
-    const char *filename, double rvalue_threshold, int cores,
-    int with_return, int swap_y_and_z, Storage storage);
+typedef struct ArgumentsStruct {
+    double *xmat, *ymat, *zmat;
+    const char *filename;
+    SEXP names;
+    double rvalue_threshold;
+    int xcol, ycol, zcol, nrow;
+    int swap_y_and_z, with_return, cores;
+} *Arguments;
+
+static SEXP compute_and_save(Arguments args, Storage storage);
 static SEXP create_data_frame(Storage storage, int offset, SEXP names);
 static const char **extract_colnames(SEXP mat);
 static int filter_and_convert_rvalues(Storage storage, double threshold,
@@ -35,59 +41,61 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
     SEXP output_file_, SEXP names, SEXP rvalue_threshold, SEXP cores,
     SEXP with_return, SEXP storage_)
 {
-    int swap_y_and_z = ncols(zmat_) > ncols(ymat_);
-    SEXP xmat = PROTECT(duplicate(xmat_));
-    SEXP ymat = PROTECT(duplicate(swap_y_and_z ? zmat_ : ymat_));
-    SEXP zmat = PROTECT(duplicate(swap_y_and_z ? ymat_ : zmat_));
+    struct ArgumentsStruct args;
+    args.swap_y_and_z = ncols(zmat_) > ncols(ymat_);
+    args.xmat = REAL(PROTECT(duplicate(xmat_)));
+    args.ymat = REAL(PROTECT(duplicate(args.swap_y_and_z ? zmat_ : ymat_)));
+    args.zmat = REAL(PROTECT(duplicate(args.swap_y_and_z ? ymat_ : zmat_)));
+    args.xcol = ncols(xmat_);
+    args.ycol = ncols(args.swap_y_and_z ? zmat_ : ymat_);
+    args.zcol = ncols(args.swap_y_and_z ? ymat_ : zmat_);
+    args.nrow = nrows(xmat_);
+    args.filename = (output_file_ == R_NilValue) ? NULL : CHAR(asChar(output_file_));
+    args.rvalue_threshold = asReal(rvalue_threshold);
+    args.with_return = asInteger(with_return);
+    args.cores = asInteger(cores);
+    args.names = names;
 
     Storage storage = R_ExternalPtrAddr(storage_);
     storage->xnames = extract_colnames(xmat_);
     storage->ynames = extract_colnames(ymat_);
     storage->znames = extract_colnames(zmat_);
 
-    const char *output_file = (output_file_ == R_NilValue) ? NULL : CHAR(asChar(output_file_));
-
-    SEXP result = compute_and_save(REAL(xmat), REAL(ymat), REAL(zmat),
-        ncols(xmat), ncols(ymat), ncols(zmat), nrows(xmat), names,
-        output_file, asReal(rvalue_threshold), asInteger(cores),
-        asInteger(with_return), swap_y_and_z, storage);
+    SEXP result = compute_and_save(&args, storage);
 
     UNPROTECT(3);
     return result;
 }
 
-static SEXP compute_and_save(double *xmat, double *ymat, double *zmat,
-    int xcol, int ycol, int zcol, int nrow, SEXP names,
-    const char *filename, double rvalue_threshold, int cores,
-    int with_return, int swap_y_and_z, Storage storage)
+static SEXP compute_and_save(Arguments args, Storage storage)
 {
-    F77_CALL(center)(xmat, &nrow, &xcol);
-    F77_CALL(center)(ymat, &nrow, &ycol);
-    F77_CALL(center)(zmat, &nrow, &zcol);
+    F77_CALL(center)(args->xmat, &args->nrow, &args->xcol);
+    F77_CALL(center)(args->ymat, &args->nrow, &args->ycol);
+    F77_CALL(center)(args->zmat, &args->nrow, &args->zcol);
 
-    int no_threshold = !R_FINITE(rvalue_threshold);
-    initialize_storage(storage, xcol, ycol, zcol, no_threshold, with_return);
+    int no_threshold = !R_FINITE(args->rvalue_threshold);
+    initialize_storage(storage, args->xcol, args->ycol, args->zcol, no_threshold, args->with_return);
     int offset = 0;             // index of next element in x, y, z, r
 
     FILE *fp = NULL;
-    if (filename) {
-        fp = fopen(filename, "wb");
-        print_header(fp, names);
+    if (args->filename) {
+        fp = fopen(args->filename, "wb");
+        print_header(fp, args->names);
     }
-    for (int i = 0; i < zcol; i++) {
+    for (int i = 0; i < args->zcol; i++) {
         maybe_grow_storage(storage, offset);
-        F77_CALL(rval)(xmat, ymat, zmat + i * nrow, &xcol, &ycol, &nrow, storage->rvalue, &cores);
-        int nsignif = filter_and_convert_rvalues(storage, rvalue_threshold, xcol, i, swap_y_and_z, offset, nrow);
-        if (filename && nsignif > 0)
+        F77_CALL(rval)(args->xmat, args->ymat, args->zmat + i * args->nrow, &args->xcol, &args->ycol, &args->nrow, storage->rvalue, &args->cores);
+        int nsignif = filter_and_convert_rvalues(storage, args->rvalue_threshold, args->xcol, i, args->swap_y_and_z, offset, args->nrow);
+        if (args->filename && nsignif > 0)
             print_pvalues(fp, storage, offset, nsignif);
-        if (with_return)
+        if (args->with_return)
             offset += nsignif;
         R_CheckUserInterrupt();
     }
-    if (filename)
+    if (args->filename)
         fclose(fp);
 
-    return with_return ? create_data_frame(storage, offset, names) : R_NilValue;
+    return args->with_return ? create_data_frame(storage, offset, args->names) : R_NilValue;
 }
 
 static void initialize_storage(Storage storage, int xcol, int ycol, int zcol, int no_threshold, int with_return) {
