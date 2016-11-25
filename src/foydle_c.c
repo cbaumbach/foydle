@@ -22,9 +22,11 @@ typedef struct ArgumentsStruct {
     int swap_y_and_z, with_return, cores;
 } *Arguments;
 
+static void allocate_memory_for_saved_results(Storage storage, Arguments args);
 static SEXP compute_and_save(Arguments args, Storage storage);
 static SEXP create_data_frame(Storage storage, int nsaved, SEXP names);
-static const char **extract_colnames(SEXP colnames);
+static const char **convert_column_names(SEXP colnames);
+static void convert_column_names_to_string_arrays(Storage storage, Arguments args);
 static int filter_and_convert_rvalues(Storage storage, Arguments args, int zindex, int nsaved_before);
 static void initialize_storage(Storage storage, Arguments args);
 static void maybe_grow_storage(Storage storage, int nsaved);
@@ -98,27 +100,44 @@ static SEXP compute_and_save(Arguments args, Storage storage)
 }
 
 static void initialize_storage(Storage storage, Arguments args) {
-    storage->xnames = extract_colnames(args->xnames);
-    storage->ynames = extract_colnames(args->ynames);
-    storage->znames = extract_colnames(args->znames);
+    convert_column_names_to_string_arrays(storage, args);
+    allocate_memory_for_saved_results(storage, args);
+}
 
-    storage->minimum_capacity = args->xcol * args->ycol;
+static void convert_column_names_to_string_arrays(Storage storage, Arguments args) {
+    storage->xnames = convert_column_names(args->xnames);
+    storage->ynames = convert_column_names(args->ynames);
+    storage->znames = convert_column_names(args->znames);
+}
+
+static const char **convert_column_names(SEXP colnames) {
+    int n = length(colnames);
+    const char **result = Calloc(n, const char *);
+    for (int i = 0; i < n; i++)
+        result[i] = CHAR(STRING_ELT(colnames, i));
+    return result;
+}
+
+static void allocate_memory_for_saved_results(Storage storage, Arguments args) {
     int full_capacity = args->xcol * args->ycol * args->zcol;
+    int minimum_capacity = args->xcol * args->ycol;
     int no_threshold = !R_FINITE(args->rvalue_threshold);
     if (args->with_return && no_threshold)
         storage->capacity = full_capacity;
     else if (args->with_return)
-        storage->capacity = 2 * storage->minimum_capacity;
+        storage->capacity = 2 * minimum_capacity;
     else
-        storage->capacity = storage->minimum_capacity;
+        storage->capacity = minimum_capacity;
+    storage->minimum_capacity = minimum_capacity;
     storage->x = Calloc(storage->capacity, const char *);
     storage->y = Calloc(storage->capacity, const char *);
     storage->z = Calloc(storage->capacity, const char *);
     storage->pvalue = Calloc(storage->capacity, double);
-    storage->rvalue = Calloc(storage->minimum_capacity, double);
+    storage->rvalue = Calloc(minimum_capacity, double);
 }
 
 static void maybe_grow_storage(Storage storage, int nsaved) {
+    // Increase memory for saved results if needed.
     int required_capacity = nsaved + storage->minimum_capacity;
     while (storage->capacity < required_capacity) {
         storage->x = Realloc(storage->x, storage->capacity + storage->minimum_capacity, const char *);
@@ -140,14 +159,6 @@ static void print_header(FILE *fp, SEXP names) {
 static void print_pvalues(FILE *fp, Storage storage, int nsaved, int nsignif) {
     for (int i = nsaved; i < nsaved + nsignif; i++)
         fprintf(fp, "%s\t%s\t%s\t%.9f\n", storage->x[i], storage->y[i], storage->z[i], storage->pvalue[i]);
-}
-
-static const char **extract_colnames(SEXP colnames) {
-    int n = length(colnames);
-    const char **result = Calloc(n, const char *);
-    for (int i = 0; i < n; i++)
-        result[i] = CHAR(STRING_ELT(colnames, i));
-    return result;
 }
 
 static int filter_and_convert_rvalues(Storage storage, Arguments args, int zindex, int nsaved_before) {
