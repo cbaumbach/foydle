@@ -11,6 +11,7 @@ typedef struct StorageStruct {
     const char **x, **y, **z;
     double *pvalue, *rvalue;
     int capacity, minimum_capacity;
+    int stored, previously_stored;
 } *Storage;
 
 typedef struct ArgumentsStruct {
@@ -24,15 +25,16 @@ typedef struct ArgumentsStruct {
 
 static void allocate_memory_for_saved_results(Storage storage, Arguments args);
 static SEXP compute_and_save(Arguments args, Storage storage);
-static SEXP create_data_frame(Storage storage, int nstored, SEXP names);
+static SEXP create_data_frame(Storage storage, SEXP names);
 static const char **convert_column_names(SEXP colnames);
 static void convert_column_names_to_string_arrays(Storage storage, Arguments args);
-static int store_results(Storage storage, Arguments args, int zindex, int nstored_before);
+static void store_results(Storage storage, Arguments args, int zindex);
 static void initialize_storage(Storage storage, Arguments args);
-static void maybe_grow_storage(Storage storage, int nstored);
+static void maybe_grow_storage(Storage storage);
 static void print_header(FILE *fp, SEXP names);
-static void print_results(FILE *fp, Storage storage, int nstored, int nsignif);
+static void print_results(FILE *fp, Storage storage);
 static double r2p(double r, int df);
+static void reset_storage(Storage storage);
 
 void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
 void F77_NAME(center)(double *matrix, int *nrow, int *ncol);
@@ -80,23 +82,22 @@ static SEXP compute_and_save(Arguments args, Storage storage)
     F77_CALL(center)(args->ymat, &args->nrow, &args->ycol);
     F77_CALL(center)(args->zmat, &args->nrow, &args->zcol);
 
-    int nstored = 0;
     for (int i = 0; i < args->zcol; i++) {
-        maybe_grow_storage(storage, nstored);
+        maybe_grow_storage(storage);
         F77_CALL(rval)(args->xmat, args->ymat, args->zmat + i * args->nrow,
             &args->xcol, &args->ycol, &args->nrow, storage->rvalue, &args->cores);
-        int nsignif = store_results(storage, args, i, nstored);
-        if (args->filename && nsignif > 0)
-            print_results(fp, storage, nstored, nsignif);
-        if (args->with_return)
-            nstored += nsignif;
+        store_results(storage, args, i);
+        if (args->filename && storage->stored - storage->previously_stored > 0)
+            print_results(fp, storage);
+        if (!args->with_return)
+            reset_storage(storage);
         R_CheckUserInterrupt();
     }
 
     if (args->filename)
         fclose(fp);
 
-    return args->with_return ? create_data_frame(storage, nstored, args->names) : R_NilValue;
+    return args->with_return ? create_data_frame(storage, args->names) : R_NilValue;
 }
 
 static void initialize_storage(Storage storage, Arguments args) {
@@ -136,9 +137,8 @@ static void allocate_memory_for_saved_results(Storage storage, Arguments args) {
     storage->rvalue = Calloc(minimum_capacity, double);
 }
 
-static void maybe_grow_storage(Storage storage, int nstored) {
-    // Increase memory for saved results if needed.
-    int required_capacity = nstored + storage->minimum_capacity;
+static void maybe_grow_storage(Storage storage) {
+    int required_capacity = storage->stored + storage->minimum_capacity;
     while (storage->capacity < required_capacity) {
         storage->x = Realloc(storage->x, storage->capacity + storage->minimum_capacity, const char *);
         storage->y = Realloc(storage->y, storage->capacity + storage->minimum_capacity, const char *);
@@ -156,25 +156,29 @@ static void print_header(FILE *fp, SEXP names) {
         CHAR(STRING_ELT(names, 3)));
 }
 
-static void print_results(FILE *fp, Storage storage, int nstored, int nsignif) {
-    for (int i = nstored; i < nstored + nsignif; i++)
+static void print_results(FILE *fp, Storage storage) {
+    for (int i = storage->previously_stored; i < storage->stored; i++)
         fprintf(fp, "%s\t%s\t%s\t%.9f\n", storage->x[i], storage->y[i], storage->z[i], storage->pvalue[i]);
 }
 
-static int store_results(Storage storage, Arguments args, int zindex, int nstored_before) {
+static void store_results(Storage storage, Arguments args, int zindex) {
     int df = args->nrow - 4;
     int no_threshold = !R_FINITE(args->rvalue_threshold);
-    int nstored = nstored_before;
+    storage->previously_stored = storage->stored;
     for (int i = 0; i < storage->minimum_capacity; i++) {
         if (no_threshold || fabs(storage->rvalue[i]) >= args->rvalue_threshold) {
-            storage->x[nstored] = storage->xnames[i % args->xcol];
-            storage->y[nstored] = storage->ynames[args->swap_y_and_z ? zindex : i / args->xcol];
-            storage->z[nstored] = storage->znames[args->swap_y_and_z ? i / args->xcol : zindex];
-            storage->pvalue[nstored] = r2p(storage->rvalue[i], df);
-            ++nstored;
+            storage->x[storage->stored] = storage->xnames[i % args->xcol];
+            storage->y[storage->stored] = storage->ynames[args->swap_y_and_z ? zindex : i / args->xcol];
+            storage->z[storage->stored] = storage->znames[args->swap_y_and_z ? i / args->xcol : zindex];
+            storage->pvalue[storage->stored] = r2p(storage->rvalue[i], df);
+            ++storage->stored;
         }
     }
-    return nstored - nstored_before;
+}
+
+static void reset_storage(Storage storage) {
+    storage->previously_stored = 0;
+    storage->stored = 0;
 }
 
 static double r2p(double r, int df) {
@@ -182,12 +186,12 @@ static double r2p(double r, int df) {
     return 2 * pt(t, df, 0, 0);
 }
 
-static SEXP create_data_frame(Storage storage, int nrow, SEXP names_) {
-    SEXP x = PROTECT(allocVector(STRSXP, nrow));
-    SEXP y = PROTECT(allocVector(STRSXP, nrow));
-    SEXP z = PROTECT(allocVector(STRSXP, nrow));
-    SEXP pvalue = PROTECT(allocVector(REALSXP, nrow));
-    for (int i = 0; i < nrow; i++) {
+static SEXP create_data_frame(Storage storage, SEXP names_) {
+    SEXP x = PROTECT(allocVector(STRSXP, storage->stored));
+    SEXP y = PROTECT(allocVector(STRSXP, storage->stored));
+    SEXP z = PROTECT(allocVector(STRSXP, storage->stored));
+    SEXP pvalue = PROTECT(allocVector(REALSXP, storage->stored));
+    for (int i = 0; i < storage->stored; i++) {
         SET_STRING_ELT(x, i, mkChar(storage->x[i]));
         SET_STRING_ELT(y, i, mkChar(storage->y[i]));
         SET_STRING_ELT(z, i, mkChar(storage->z[i]));
@@ -207,8 +211,8 @@ static SEXP create_data_frame(Storage storage, int nrow, SEXP names_) {
     SEXP names = PROTECT(duplicate(names_));
     setAttrib(result, R_NamesSymbol, names);
 
-    SEXP rownames = PROTECT(allocVector(INTSXP, nrow));
-    for (int i = 0; i < nrow; i++)
+    SEXP rownames = PROTECT(allocVector(INTSXP, storage->stored));
+    for (int i = 0; i < storage->stored; i++)
         INTEGER(rownames)[i] = i + 1;
     setAttrib(result, R_RowNamesSymbol, rownames);
 
@@ -226,6 +230,10 @@ SEXP create_storage(void) {
     storage->z = NULL;
     storage->pvalue = NULL;
     storage->rvalue = NULL;
+    storage->capacity = 0;
+    storage->minimum_capacity = 0;
+    storage->stored = 0;
+    storage->previously_stored = 0;
     return R_MakeExternalPtr(storage, R_NilValue, R_NilValue);
 }
 
