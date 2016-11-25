@@ -11,7 +11,7 @@ typedef struct StorageStruct {
     const char **x, **y, **z;
     double *pvalue, *rvalue;
     int capacity, minimum_capacity;
-    int stored, previously_stored;
+    int stored, previously_stored, contains_new_results;
 } *Storage;
 
 typedef struct ArgumentsStruct {
@@ -85,7 +85,7 @@ static SEXP compute_store_and_print_results(Arguments args, Storage storage)
         grow_storage_if_necessary(storage);
         compute_results(storage, args, i);
         store_results(storage, args, i);
-        if (args->filename && storage->stored - storage->previously_stored > 0)
+        if (args->filename && storage->contains_new_results)
             print_results(fp, storage);
         if (!args->with_return)
             reset_storage(storage);
@@ -183,6 +183,7 @@ static void store_results(Storage storage, Arguments args, int zindex) {
             ++storage->stored;
         }
     }
+    storage->contains_new_results = storage->stored - storage->previously_stored > 0;
 }
 
 static void reset_storage(Storage storage) {
@@ -243,6 +244,7 @@ SEXP create_storage(void) {
     storage->minimum_capacity = 0;
     storage->stored = 0;
     storage->previously_stored = 0;
+    storage->contains_new_results = 0;
     return R_MakeExternalPtr(storage, R_NilValue, R_NilValue);
 }
 
