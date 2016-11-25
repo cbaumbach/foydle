@@ -27,8 +27,7 @@ static SEXP create_data_frame(Storage storage, int offset, SEXP names);
 static const char **extract_colnames(SEXP mat);
 static int filter_and_convert_rvalues(Storage storage, double threshold,
     int xcol, int zi, int swap_y_and_z, int initial_offset, int nrow);
-static void initialize_storage(Storage storage, int xcol, int ycol, int zcol,
-    int no_threshold, int with_return);
+static void initialize_storage(Storage storage, Arguments args);
 static void maybe_grow_storage(Storage storage, int size);
 static void print_header(FILE *fp, SEXP names);
 static void print_pvalues(FILE *fp, Storage storage, int offset, int nsignif);
@@ -57,6 +56,7 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
     args.names = names;
 
     Storage storage = R_ExternalPtrAddr(storage_);
+    initialize_storage(storage, &args);
     storage->xnames = extract_colnames(xmat_);
     storage->ynames = extract_colnames(ymat_);
     storage->znames = extract_colnames(zmat_);
@@ -73,8 +73,6 @@ static SEXP compute_and_save(Arguments args, Storage storage)
     F77_CALL(center)(args->ymat, &args->nrow, &args->ycol);
     F77_CALL(center)(args->zmat, &args->nrow, &args->zcol);
 
-    int no_threshold = !R_FINITE(args->rvalue_threshold);
-    initialize_storage(storage, args->xcol, args->ycol, args->zcol, no_threshold, args->with_return);
     int offset = 0;             // index of next element in x, y, z, r
 
     FILE *fp = NULL;
@@ -98,12 +96,13 @@ static SEXP compute_and_save(Arguments args, Storage storage)
     return args->with_return ? create_data_frame(storage, offset, args->names) : R_NilValue;
 }
 
-static void initialize_storage(Storage storage, int xcol, int ycol, int zcol, int no_threshold, int with_return) {
-    storage->minimum_capacity = xcol * ycol;
-    int full_capacity = xcol * ycol * zcol;
-    if (with_return && no_threshold)
+static void initialize_storage(Storage storage, Arguments args) {
+    storage->minimum_capacity = args->xcol * args->ycol;
+    int full_capacity = args->xcol * args->ycol * args->zcol;
+    int no_threshold = !R_FINITE(args->rvalue_threshold);
+    if (args->with_return && no_threshold)
         storage->capacity = full_capacity;
-    else if (with_return)
+    else if (args->with_return)
         storage->capacity = 2 * storage->minimum_capacity;
     else
         storage->capacity = storage->minimum_capacity;
