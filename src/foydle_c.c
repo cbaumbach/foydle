@@ -25,6 +25,7 @@ typedef struct ArgumentsStruct {
 
 static void allocate_memory_for_saved_results(Storage storage, Arguments args);
 static SEXP compute_and_save(Arguments args, Storage storage);
+static void compute_results(Storage storage, Arguments args, int zcolumn);
 static SEXP create_data_frame(Storage storage, SEXP names);
 static const char **convert_column_names(SEXP colnames);
 static void convert_column_names_to_string_arrays(Storage storage, Arguments args);
@@ -84,8 +85,7 @@ static SEXP compute_and_save(Arguments args, Storage storage)
 
     for (int i = 0; i < args->zcol; i++) {
         maybe_grow_storage(storage);
-        F77_CALL(rval)(args->xmat, args->ymat, args->zmat + i * args->nrow,
-            &args->xcol, &args->ycol, &args->nrow, storage->rvalue, &args->cores);
+        compute_results(storage, args, i);
         store_results(storage, args, i);
         if (args->filename && storage->stored - storage->previously_stored > 0)
             print_results(fp, storage);
@@ -98,6 +98,11 @@ static SEXP compute_and_save(Arguments args, Storage storage)
         fclose(fp);
 
     return args->with_return ? create_data_frame(storage, args->names) : R_NilValue;
+}
+
+static void compute_results(Storage storage, Arguments args, int zcolumn) {
+    F77_CALL(rval)(args->xmat, args->ymat, args->zmat + zcolumn * args->nrow,
+        &args->xcol, &args->ycol, &args->nrow, storage->rvalue, &args->cores);
 }
 
 static void initialize_storage(Storage storage, Arguments args) {
