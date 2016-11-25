@@ -34,7 +34,7 @@ foydle <- function(xmat, ymat, zmat, output_file = NULL, with_return = TRUE,
     storage.mode(xmat) <- storage.mode(ymat) <- storage.mode(zmat) <- "double"
     storage <- create_storage()
     on.exit(free_storage(storage), add = TRUE)
-    .Call("compute_and_save_rvalues", xmat, ymat, zmat, output_file, names,
+    .Call("run_regressions", xmat, ymat, zmat, output_file, names,
         rvalue_threshold, as.integer(cores), as.logical(with_return), storage,
         PACKAGE = "foydle")
 }

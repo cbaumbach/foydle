@@ -40,7 +40,7 @@ static void reset_storage(Storage storage);
 void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
 void F77_NAME(center)(double *matrix, int *nrow, int *ncol);
 
-SEXP compute_and_save_rvalues(SEXP xmat, SEXP ymat, SEXP zmat,
+SEXP run_regressions(SEXP xmat, SEXP ymat, SEXP zmat,
     SEXP output_file, SEXP names, SEXP rvalue_threshold, SEXP cores,
     SEXP with_return, SEXP storage_)
 {
