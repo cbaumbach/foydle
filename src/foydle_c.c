@@ -24,6 +24,7 @@ typedef struct ArgumentsStruct {
 } *Arguments;
 
 static void allocate_memory_for_saved_results(Storage storage, Arguments args);
+static void center_matrix_columns(Arguments args);
 static SEXP compute_store_and_print_results(Arguments args, Storage storage);
 static void compute_results(Storage storage, Arguments args, int zcolumn);
 static SEXP create_data_frame(Storage storage, SEXP names);
@@ -79,10 +80,7 @@ static SEXP compute_store_and_print_results(Arguments args, Storage storage)
         print_header(fp, args->names);
     }
 
-    F77_CALL(center)(args->xmat, &args->nrow, &args->xcol);
-    F77_CALL(center)(args->ymat, &args->nrow, &args->ycol);
-    F77_CALL(center)(args->zmat, &args->nrow, &args->zcol);
-
+    center_matrix_columns(args);
     for (int i = 0; i < args->zcol; i++) {
         maybe_grow_storage(storage);
         compute_results(storage, args, i);
@@ -98,6 +96,12 @@ static SEXP compute_store_and_print_results(Arguments args, Storage storage)
         fclose(fp);
 
     return args->with_return ? create_data_frame(storage, args->names) : R_NilValue;
+}
+
+static void center_matrix_columns(Arguments args) {
+    F77_CALL(center)(args->xmat, &args->nrow, &args->xcol);
+    F77_CALL(center)(args->ymat, &args->nrow, &args->ycol);
+    F77_CALL(center)(args->zmat, &args->nrow, &args->zcol);
 }
 
 static void compute_results(Storage storage, Arguments args, int zcolumn) {
