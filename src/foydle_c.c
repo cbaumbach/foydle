@@ -16,7 +16,7 @@ typedef struct StorageStruct {
 typedef struct ArgumentsStruct {
     double *xmat, *ymat, *zmat;
     const char *filename;
-    SEXP names;
+    SEXP xnames, ynames, znames, names;
     double rvalue_threshold;
     int xcol, ycol, zcol, nrow;
     int swap_y_and_z, with_return, cores;
@@ -24,7 +24,7 @@ typedef struct ArgumentsStruct {
 
 static SEXP compute_and_save(Arguments args, Storage storage);
 static SEXP create_data_frame(Storage storage, int offset, SEXP names);
-static const char **extract_colnames(SEXP mat);
+static const char **extract_colnames(SEXP colnames);
 static int filter_and_convert_rvalues(Storage storage, double threshold,
     int xcol, int zi, int swap_y_and_z, int initial_offset, int nrow);
 static void initialize_storage(Storage storage, Arguments args);
@@ -45,6 +45,9 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
     args.xmat = REAL(PROTECT(duplicate(xmat_)));
     args.ymat = REAL(PROTECT(duplicate(args.swap_y_and_z ? zmat_ : ymat_)));
     args.zmat = REAL(PROTECT(duplicate(args.swap_y_and_z ? ymat_ : zmat_)));
+    args.xnames = VECTOR_ELT(getAttrib(xmat_, R_DimNamesSymbol), 1);
+    args.ynames = VECTOR_ELT(getAttrib(ymat_, R_DimNamesSymbol), 1);
+    args.znames = VECTOR_ELT(getAttrib(zmat_, R_DimNamesSymbol), 1);
     args.xcol = ncols(xmat_);
     args.ycol = ncols(args.swap_y_and_z ? zmat_ : ymat_);
     args.zcol = ncols(args.swap_y_and_z ? ymat_ : zmat_);
@@ -57,9 +60,6 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
 
     Storage storage = R_ExternalPtrAddr(storage_);
     initialize_storage(storage, &args);
-    storage->xnames = extract_colnames(xmat_);
-    storage->ynames = extract_colnames(ymat_);
-    storage->znames = extract_colnames(zmat_);
 
     SEXP result = compute_and_save(&args, storage);
 
@@ -97,6 +97,10 @@ static SEXP compute_and_save(Arguments args, Storage storage)
 }
 
 static void initialize_storage(Storage storage, Arguments args) {
+    storage->xnames = extract_colnames(args->xnames);
+    storage->ynames = extract_colnames(args->ynames);
+    storage->znames = extract_colnames(args->znames);
+
     storage->minimum_capacity = args->xcol * args->ycol;
     int full_capacity = args->xcol * args->ycol * args->zcol;
     int no_threshold = !R_FINITE(args->rvalue_threshold);
@@ -138,8 +142,7 @@ static void print_pvalues(FILE *fp, Storage storage, int offset, int nsignif)
         fprintf(fp, "%s\t%s\t%s\t%.9f\n", storage->x[i], storage->y[i], storage->z[i], storage->pvalue[i]);
 }
 
-static const char **extract_colnames(SEXP mat) {
-    SEXP colnames = VECTOR_ELT(getAttrib(mat, R_DimNamesSymbol), 1);
+static const char **extract_colnames(SEXP colnames) {
     int n = length(colnames);
     const char **result = Calloc(n, const char *);
     for (int i = 0; i < n; i++)
