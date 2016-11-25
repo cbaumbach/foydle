@@ -232,18 +232,11 @@ static SEXP create_data_frame(Storage storage, SEXP names_) {
 
 SEXP create_storage(void) {
     Storage storage = Calloc(1, struct StorageStruct);
-    storage->xnames = NULL;
-    storage->ynames = NULL;
-    storage->znames = NULL;
-    storage->x = NULL;
-    storage->y = NULL;
-    storage->z = NULL;
-    storage->pvalue = NULL;
-    storage->rvalue = NULL;
-    storage->capacity = 0;
-    storage->minimum_capacity = 0;
-    storage->stored = 0;
-    storage->previously_stored = 0;
+    storage->xnames = storage->ynames = storage->znames = NULL;
+    storage->x = storage->y = storage->z = NULL;
+    storage->pvalue = storage->rvalue = NULL;
+    storage->capacity = storage->minimum_capacity = 0;
+    storage->previously_stored = storage->stored = 0;
     storage->contains_new_results = 0;
     return R_MakeExternalPtr(storage, R_NilValue, R_NilValue);
 }
@@ -252,22 +245,14 @@ SEXP free_storage(SEXP storage_) {
     Storage storage = R_ExternalPtrAddr(storage_);
     if (!storage)
         return R_NilValue;
-    if (storage->xnames)
-        Free(storage->xnames);
-    if (storage->ynames)
-        Free(storage->ynames);
-    if (storage->znames)
-        Free(storage->znames);
-    if (storage->x)
-        Free(storage->x);
-    if (storage->y)
-        Free(storage->y);
-    if (storage->z)
-        Free(storage->z);
-    if (storage->pvalue)
-        Free(storage->pvalue);
-    if (storage->rvalue)
-        Free(storage->rvalue);
+    if (storage->xnames) Free(storage->xnames);
+    if (storage->ynames) Free(storage->ynames);
+    if (storage->znames) Free(storage->znames);
+    if (storage->x) Free(storage->x);
+    if (storage->y) Free(storage->y);
+    if (storage->z) Free(storage->z);
+    if (storage->pvalue) Free(storage->pvalue);
+    if (storage->rvalue) Free(storage->rvalue);
     R_ClearExternalPtr(storage_);
     return R_NilValue;
 }
