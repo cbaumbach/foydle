@@ -24,7 +24,7 @@ typedef struct ArgumentsStruct {
 } *Arguments;
 
 static void allocate_memory_for_saved_results(Storage storage, Arguments args);
-static SEXP compute_and_save(Arguments args, Storage storage);
+static SEXP compute_store_and_print_results(Arguments args, Storage storage);
 static void compute_results(Storage storage, Arguments args, int zcolumn);
 static SEXP create_data_frame(Storage storage, SEXP names);
 static const char **convert_column_names(SEXP colnames);
@@ -65,13 +65,13 @@ SEXP run_regressions(SEXP xmat, SEXP ymat, SEXP zmat,
     Storage storage = R_ExternalPtrAddr(storage_);
     initialize_storage(storage, &args);
 
-    SEXP result = compute_and_save(&args, storage);
+    SEXP result = compute_store_and_print_results(&args, storage);
 
     UNPROTECT(3);
     return result;
 }
 
-static SEXP compute_and_save(Arguments args, Storage storage)
+static SEXP compute_store_and_print_results(Arguments args, Storage storage)
 {
     FILE *fp = NULL;
     if (args->filename) {
