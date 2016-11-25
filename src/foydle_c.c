@@ -32,7 +32,7 @@ static const char **convert_column_names(SEXP colnames);
 static void convert_column_names_to_string_arrays(Storage storage, Arguments args);
 static void store_results(Storage storage, Arguments args, int zindex);
 static void initialize_storage(Storage storage, Arguments args);
-static void maybe_grow_storage(Storage storage);
+static void grow_storage_if_necessary(Storage storage);
 static void print_header(FILE *fp, SEXP names);
 static void print_results(FILE *fp, Storage storage);
 static double r2p(double r, int df);
@@ -82,7 +82,7 @@ static SEXP compute_store_and_print_results(Arguments args, Storage storage)
 
     center_matrix_columns(args);
     for (int i = 0; i < args->zcol; i++) {
-        maybe_grow_storage(storage);
+        grow_storage_if_necessary(storage);
         compute_results(storage, args, i);
         store_results(storage, args, i);
         if (args->filename && storage->stored - storage->previously_stored > 0)
@@ -146,7 +146,7 @@ static void allocate_memory_for_saved_results(Storage storage, Arguments args) {
     storage->rvalue = Calloc(minimum_capacity, double);
 }
 
-static void maybe_grow_storage(Storage storage) {
+static void grow_storage_if_necessary(Storage storage) {
     int required_capacity = storage->stored + storage->minimum_capacity;
     while (storage->capacity < required_capacity) {
         storage->x = Realloc(storage->x, storage->capacity + storage->minimum_capacity, const char *);
