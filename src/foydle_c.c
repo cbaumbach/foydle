@@ -31,7 +31,7 @@ static int store_results(Storage storage, Arguments args, int zindex, int nstore
 static void initialize_storage(Storage storage, Arguments args);
 static void maybe_grow_storage(Storage storage, int nstored);
 static void print_header(FILE *fp, SEXP names);
-static void print_pvalues(FILE *fp, Storage storage, int nstored, int nsignif);
+static void print_results(FILE *fp, Storage storage, int nstored, int nsignif);
 static double r2p(double r, int df);
 
 void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
@@ -87,7 +87,7 @@ static SEXP compute_and_save(Arguments args, Storage storage)
             &args->xcol, &args->ycol, &args->nrow, storage->rvalue, &args->cores);
         int nsignif = store_results(storage, args, i, nstored);
         if (args->filename && nsignif > 0)
-            print_pvalues(fp, storage, nstored, nsignif);
+            print_results(fp, storage, nstored, nsignif);
         if (args->with_return)
             nstored += nsignif;
         R_CheckUserInterrupt();
@@ -156,7 +156,7 @@ static void print_header(FILE *fp, SEXP names) {
         CHAR(STRING_ELT(names, 3)));
 }
 
-static void print_pvalues(FILE *fp, Storage storage, int nstored, int nsignif) {
+static void print_results(FILE *fp, Storage storage, int nstored, int nsignif) {
     for (int i = nstored; i < nstored + nsignif; i++)
         fprintf(fp, "%s\t%s\t%s\t%.9f\n", storage->x[i], storage->y[i], storage->z[i], storage->pvalue[i]);
 }
