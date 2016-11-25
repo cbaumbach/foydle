@@ -23,13 +23,13 @@ typedef struct ArgumentsStruct {
 } *Arguments;
 
 static SEXP compute_and_save(Arguments args, Storage storage);
-static SEXP create_data_frame(Storage storage, int offset, SEXP names);
+static SEXP create_data_frame(Storage storage, int nsaved, SEXP names);
 static const char **extract_colnames(SEXP colnames);
-static int filter_and_convert_rvalues(Storage storage, Arguments args, int zindex, int initial_offset);
+static int filter_and_convert_rvalues(Storage storage, Arguments args, int zindex, int nsaved_before);
 static void initialize_storage(Storage storage, Arguments args);
-static void maybe_grow_storage(Storage storage, int size);
+static void maybe_grow_storage(Storage storage, int nsaved);
 static void print_header(FILE *fp, SEXP names);
-static void print_pvalues(FILE *fp, Storage storage, int offset, int nsignif);
+static void print_pvalues(FILE *fp, Storage storage, int nsaved, int nsignif);
 static double r2p(double r, int df);
 
 void F77_NAME(rval)(double *xmat, double *ymat, double *z, int *xcol, int *ycol, int *nrow, double *rvalue, int *cores);
@@ -68,31 +68,33 @@ SEXP compute_and_save_rvalues(SEXP xmat_, SEXP ymat_, SEXP zmat_,
 
 static SEXP compute_and_save(Arguments args, Storage storage)
 {
-    F77_CALL(center)(args->xmat, &args->nrow, &args->xcol);
-    F77_CALL(center)(args->ymat, &args->nrow, &args->ycol);
-    F77_CALL(center)(args->zmat, &args->nrow, &args->zcol);
-
-    int offset = 0;             // index of next element in x, y, z, r
-
     FILE *fp = NULL;
     if (args->filename) {
         fp = fopen(args->filename, "wb");
         print_header(fp, args->names);
     }
+
+    F77_CALL(center)(args->xmat, &args->nrow, &args->xcol);
+    F77_CALL(center)(args->ymat, &args->nrow, &args->ycol);
+    F77_CALL(center)(args->zmat, &args->nrow, &args->zcol);
+
+    int nsaved = 0;             // number of saved results
     for (int i = 0; i < args->zcol; i++) {
-        maybe_grow_storage(storage, offset);
-        F77_CALL(rval)(args->xmat, args->ymat, args->zmat + i * args->nrow, &args->xcol, &args->ycol, &args->nrow, storage->rvalue, &args->cores);
-        int nsignif = filter_and_convert_rvalues(storage, args, i, offset);
+        maybe_grow_storage(storage, nsaved);
+        F77_CALL(rval)(args->xmat, args->ymat, args->zmat + i * args->nrow,
+            &args->xcol, &args->ycol, &args->nrow, storage->rvalue, &args->cores);
+        int nsignif = filter_and_convert_rvalues(storage, args, i, nsaved);
         if (args->filename && nsignif > 0)
-            print_pvalues(fp, storage, offset, nsignif);
+            print_pvalues(fp, storage, nsaved, nsignif);
         if (args->with_return)
-            offset += nsignif;
+            nsaved += nsignif;
         R_CheckUserInterrupt();
     }
+
     if (args->filename)
         fclose(fp);
 
-    return args->with_return ? create_data_frame(storage, offset, args->names) : R_NilValue;
+    return args->with_return ? create_data_frame(storage, nsaved, args->names) : R_NilValue;
 }
 
 static void initialize_storage(Storage storage, Arguments args) {
@@ -116,8 +118,8 @@ static void initialize_storage(Storage storage, Arguments args) {
     storage->rvalue = Calloc(storage->minimum_capacity, double);
 }
 
-static void maybe_grow_storage(Storage storage, int size) {
-    int required_capacity = size + storage->minimum_capacity;
+static void maybe_grow_storage(Storage storage, int nsaved) {
+    int required_capacity = nsaved + storage->minimum_capacity;
     while (storage->capacity < required_capacity) {
         storage->x = Realloc(storage->x, storage->capacity + storage->minimum_capacity, const char *);
         storage->y = Realloc(storage->y, storage->capacity + storage->minimum_capacity, const char *);
@@ -135,9 +137,8 @@ static void print_header(FILE *fp, SEXP names) {
         CHAR(STRING_ELT(names, 3)));
 }
 
-static void print_pvalues(FILE *fp, Storage storage, int offset, int nsignif)
-{
-    for (int i = offset; i < offset + nsignif; i++)
+static void print_pvalues(FILE *fp, Storage storage, int nsaved, int nsignif) {
+    for (int i = nsaved; i < nsaved + nsignif; i++)
         fprintf(fp, "%s\t%s\t%s\t%.9f\n", storage->x[i], storage->y[i], storage->z[i], storage->pvalue[i]);
 }
 
@@ -149,21 +150,20 @@ static const char **extract_colnames(SEXP colnames) {
     return result;
 }
 
-static int filter_and_convert_rvalues(Storage storage, Arguments args, int zindex, int initial_offset)
-{
+static int filter_and_convert_rvalues(Storage storage, Arguments args, int zindex, int nsaved_before) {
     int df = args->nrow - 4;
     int no_threshold = !R_FINITE(args->rvalue_threshold);
-    int offset = initial_offset;
+    int nsaved = nsaved_before;
     for (int i = 0; i < storage->minimum_capacity; i++) {
         if (no_threshold || fabs(storage->rvalue[i]) >= args->rvalue_threshold) {
-            storage->x[offset] = storage->xnames[i % args->xcol];
-            storage->y[offset] = storage->ynames[args->swap_y_and_z ? zindex : i / args->xcol];
-            storage->z[offset] = storage->znames[args->swap_y_and_z ? i / args->xcol : zindex];
-            storage->pvalue[offset] = r2p(storage->rvalue[i], df);
-            ++offset;
+            storage->x[nsaved] = storage->xnames[i % args->xcol];
+            storage->y[nsaved] = storage->ynames[args->swap_y_and_z ? zindex : i / args->xcol];
+            storage->z[nsaved] = storage->znames[args->swap_y_and_z ? i / args->xcol : zindex];
+            storage->pvalue[nsaved] = r2p(storage->rvalue[i], df);
+            ++nsaved;
         }
     }
-    return offset - initial_offset;
+    return nsaved - nsaved_before;
 }
 
 static double r2p(double r, int df) {
@@ -171,8 +171,7 @@ static double r2p(double r, int df) {
     return 2 * pt(t, df, 0, 0);
 }
 
-static SEXP create_data_frame(Storage storage, int nrow, SEXP names_)
-{
+static SEXP create_data_frame(Storage storage, int nrow, SEXP names_) {
     SEXP x = PROTECT(allocVector(STRSXP, nrow));
     SEXP y = PROTECT(allocVector(STRSXP, nrow));
     SEXP z = PROTECT(allocVector(STRSXP, nrow));
