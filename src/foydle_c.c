@@ -25,8 +25,7 @@ typedef struct ArgumentsStruct {
 static SEXP compute_and_save(Arguments args, Storage storage);
 static SEXP create_data_frame(Storage storage, int offset, SEXP names);
 static const char **extract_colnames(SEXP colnames);
-static int filter_and_convert_rvalues(Storage storage, double threshold,
-    int xcol, int zi, int swap_y_and_z, int initial_offset, int nrow);
+static int filter_and_convert_rvalues(Storage storage, Arguments args, int zindex, int initial_offset);
 static void initialize_storage(Storage storage, Arguments args);
 static void maybe_grow_storage(Storage storage, int size);
 static void print_header(FILE *fp, SEXP names);
@@ -83,7 +82,7 @@ static SEXP compute_and_save(Arguments args, Storage storage)
     for (int i = 0; i < args->zcol; i++) {
         maybe_grow_storage(storage, offset);
         F77_CALL(rval)(args->xmat, args->ymat, args->zmat + i * args->nrow, &args->xcol, &args->ycol, &args->nrow, storage->rvalue, &args->cores);
-        int nsignif = filter_and_convert_rvalues(storage, args->rvalue_threshold, args->xcol, i, args->swap_y_and_z, offset, args->nrow);
+        int nsignif = filter_and_convert_rvalues(storage, args, i, offset);
         if (args->filename && nsignif > 0)
             print_pvalues(fp, storage, offset, nsignif);
         if (args->with_return)
@@ -150,17 +149,16 @@ static const char **extract_colnames(SEXP colnames) {
     return result;
 }
 
-static int filter_and_convert_rvalues(Storage storage, double threshold,
-    int xcol, int zi, int swap_y_and_z, int initial_offset, int nrow)
+static int filter_and_convert_rvalues(Storage storage, Arguments args, int zindex, int initial_offset)
 {
-    int df = nrow - 4;
-    int no_threshold = !R_FINITE(threshold);
+    int df = args->nrow - 4;
+    int no_threshold = !R_FINITE(args->rvalue_threshold);
     int offset = initial_offset;
     for (int i = 0; i < storage->minimum_capacity; i++) {
-        if (no_threshold || fabs(storage->rvalue[i]) >= threshold) {
-            storage->x[offset] = storage->xnames[i % xcol];
-            storage->y[offset] = storage->ynames[swap_y_and_z ? zi : i / xcol];
-            storage->z[offset] = storage->znames[swap_y_and_z ? i / xcol : zi];
+        if (no_threshold || fabs(storage->rvalue[i]) >= args->rvalue_threshold) {
+            storage->x[offset] = storage->xnames[i % args->xcol];
+            storage->y[offset] = storage->ynames[args->swap_y_and_z ? zindex : i / args->xcol];
+            storage->z[offset] = storage->znames[args->swap_y_and_z ? i / args->xcol : zindex];
             storage->pvalue[offset] = r2p(storage->rvalue[i], df);
             ++offset;
         }
